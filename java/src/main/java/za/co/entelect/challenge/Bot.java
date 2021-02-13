@@ -120,9 +120,15 @@ public class Bot {
                 Position P1 = new Position();
                 P1.x = i;
                 P1.y = j;
-
                 if(!(P1.x == currentWorm.position.x && P1.y == currentWorm.position.y) && isCoordinateValid(P1)){
-                    map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)));
+                    int count = 0;
+                    if(gameState.map[P1.y][P1.x].type == CellType.DIRT){
+                        count += 2;
+                    }
+                    else{
+                        count += 1;
+                    }
+                    map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)) + count);
                 }
             }
         }
