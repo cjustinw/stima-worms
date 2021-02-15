@@ -1,11 +1,12 @@
 package za.co.entelect.challenge;
 
-import javafx.geometry.Pos;
 import za.co.entelect.challenge.command.*;
 import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.enums.CellType;
+import za.co.entelect.challenge.enums.Direction;
 import za.co.entelect.challenge.enums.PowerUpType;
 
+import java.sql.SQLOutput;
 import java.util.*;
 
 import static java.lang.Boolean.FALSE;
@@ -36,6 +37,13 @@ public class Bot {
         Position P = new Position();
         P.x = 16;
         P.y = 16;
+
+        for(int i = 0; i < 3; i++){
+            if(isEnemyShootable(allOpponentWorms[i])){
+                Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
+                return new ShootCommand(direction);
+            }
+        }
 
         Position P1;
         P1 = getNextCellShortestPath(P);
@@ -161,6 +169,7 @@ public class Bot {
                         count += 1;
                     }
                     map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)) + count);
+//                    System.out.println(getShortestDistance(getVertexForDijkstra(P1,P)) + count);
                 }
             }
         }
@@ -204,6 +213,7 @@ public class Bot {
     private boolean isCoordinateValid(Position P){
         return ((P.x >= 0 && P.x <= 32)&&(P.y >= 0 && P.y <= 32)&&(gameState.map[P.y][P.x].type != CellType.DEEP_SPACE));
     }
+
     private boolean isCoordinateXYValid(int x, int y) {
         return (x >= 0 && x <= 32)&&(y >= 0 && y <= 32)&&(gameState.map[y][x].type != CellType.DEEP_SPACE);
     }
@@ -408,11 +418,18 @@ public class Bot {
                 graph[i][j] = getLinearDistance(p1, p2);
             }
         }
-
-        for(int i = 0; i < C.size(); i++){
-            System.out.println(C.get(i).x + "," + C.get(i).y);
-        }
-        System.out.println();
+//        for(int i = 0; i < C.size(); i++){
+//            System.out.print(i + " ");
+//            for(int j = 0; j < C.size(); j++){
+//                System.out.print(graph[i][j] + " ");
+//            }
+//            System.out.println();
+//        }
+//        System.out.println();
+//        for(int i = 0; i < C.size(); i++){
+//            System.out.println(C.get(i).x + "," + C.get(i).y);
+//        }
+//        System.out.println();
 
         //Dijkstra Shortest Path
 
@@ -468,25 +485,24 @@ public class Bot {
     public boolean isEnemyShootable(Worm targetWorm) {
         // P1 = currentWorm Position
         // P2 = targetWorm Position
-        // Masih dalam asumsi List<Cell> C berisi :
 
         boolean isShootable = true;
         int maxRange = 4;
         Position P1 = currentWorm.position;
         Position P2 = targetWorm.position;
-        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange) {
+        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,0) || isAnyWormInRange(P1,P2,0)){
                 isShootable = false;
             }
-        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,1) || isAnyWormInRange(P1,P2,1)){
                 isShootable = false;
             }
-        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,2) || isAnyWormInRange(P1,P2,2)){
                 isShootable = false;
             }
-        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,3) || isAnyWormInRange(P1,P2,3)){
                 isShootable = false;
             }
@@ -770,10 +786,58 @@ public class Bot {
         return P3;
     }
 
+    private int getCurrentWormDistanceFromLava(){
+        ArrayList<Cell> L = new ArrayList<Cell>();
+        for(int i = 0; i < gameState.mapSize; i++){
+            for(int j = 0; j < gameState.mapSize; j++){
+                if(gameState.map[i][j].type == CellType.LAVA){
+                    L.add(gameState.map[i][j]);
+                }
+            }
+        }
+        int minDistance = 9999;
+        if(!L.isEmpty()){
+            for(int i = 0; i < L.size(); i++){
+                Position lavaCell = new Position();
+                lavaCell.x = L.get(i).x;
+                lavaCell.y = L.get(i).y;
+                int minL = getEuclideanDistance(currentWorm.position, lavaCell);
+                if(minL < minDistance){
+                    minDistance = minL;
+                }
+            }
+        }
+        return minDistance;
+    }
 
+    private Worm getEnemyWithLowestHealth(){
+        int minHealth = 9999;
+        Worm enemy = new Worm();
+        for(int i = 0; i <3; i++){
+            if(allOpponentWorms[i].health < minHealth && allOpponentWorms[i].health != 0){
+                minHealth = allOpponentWorms[i].health;
+                enemy = allOpponentWorms[i];
+            }
+        }
+        return enemy;
+    }
 
+    private int getCurrentWormHealth(){
+        return currentWorm.health;
+    }
 
-
+    private int getClosestEnemyCurrentHealth() {
+        Position P = new Position();
+        P = getClosestEnemy();
+        int health = 0;
+        for(int i = 0; i < 3; i++){
+            if(allOpponentWorms[i].position == P){
+                health = allMyWorms[i].health;
+                break;
+            }
+        }
+        return health;
+    }
 
 
 //    public Command run() {
@@ -868,24 +932,24 @@ public class Bot {
 //                && y >= 0 && y < gameState.mapSize;
 //    }
 //
-//    private Direction resolveDirection(Position a, Position b) {
-//        StringBuilder builder = new StringBuilder();
-//
-//        int verticalComponent = b.y - a.y;
-//        int horizontalComponent = b.x - a.x;
-//
-//        if (verticalComponent < 0) {
-//            builder.append('N');
-//        } else if (verticalComponent > 0) {
-//            builder.append('S');
-//        }
-//
-//        if (horizontalComponent < 0) {
-//            builder.append('W');
-//        } else if (horizontalComponent > 0) {
-//            builder.append('E');
-//        }
-//
-//        return Direction.valueOf(builder.toString());
-//    }
+    private Direction resolveDirection(Position a, Position b) {
+        StringBuilder builder = new StringBuilder();
+
+        int verticalComponent = b.y - a.y;
+        int horizontalComponent = b.x - a.x;
+
+        if (verticalComponent < 0) {
+            builder.append('N');
+        } else if (verticalComponent > 0) {
+            builder.append('S');
+        }
+
+        if (horizontalComponent < 0) {
+            builder.append('W');
+        } else if (horizontalComponent > 0) {
+            builder.append('E');
+        }
+
+        return Direction.valueOf(builder.toString());
+    }
 }
