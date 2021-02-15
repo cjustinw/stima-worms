@@ -487,25 +487,24 @@ public class Bot {
     public boolean isEnemyShootable(Worm targetWorm) {
         // P1 = currentWorm Position
         // P2 = targetWorm Position
-        // Masih dalam asumsi List<Cell> C berisi :
 
         boolean isShootable = true;
         int maxRange = 4;
         Position P1 = currentWorm.position;
         Position P2 = targetWorm.position;
-        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange) {
+        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,0) || isAnyWormInRange(P1,P2,0)){
                 isShootable = false;
             }
-        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,1) || isAnyWormInRange(P1,P2,1)){
                 isShootable = false;
             }
-        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,2) || isAnyWormInRange(P1,P2,2)){
                 isShootable = false;
             }
-        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange) {
+        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
             if(isAnyObstacleInRange(P1,P2,3) || isAnyWormInRange(P1,P2,3)){
                 isShootable = false;
             }
