@@ -268,18 +268,16 @@ public class Bot {
         return FALSE;
     }
 
-    private boolean isCommandoAlive (GameState GS) {
+    private boolean isCommandoAlive () {
         return (gameState.myPlayer.worms[0].id > 0);
     }
-    private boolean isAgentAlive (GameState GS) {
+    private boolean isAgentAlive () {
         return (gameState.myPlayer.worms[1].id > 0);
     }
-    private boolean isTechnologistAlive (GameState GS) {
+    private boolean isTechnologistAlive () {
         return (gameState.myPlayer.worms[2].id > 0);
     }
-    //private boolean isBananaBombAvailable (GameState GS) {
-        //return (gameState.myPlayer.worms[1].weapon.);
-    //}
+
 
     private List<Cell> getVertexForDijkstra(Position Psrc, Position Pdest){
         List<Cell> L = new ArrayList<Cell>();
