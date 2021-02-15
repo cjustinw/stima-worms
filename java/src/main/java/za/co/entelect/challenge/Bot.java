@@ -6,6 +6,7 @@ import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.enums.CellType;
 import za.co.entelect.challenge.enums.PowerUpType;
 
+import java.sql.SQLOutput;
 import java.util.*;
 
 import static java.lang.Boolean.FALSE;
@@ -161,6 +162,7 @@ public class Bot {
                         count += 1;
                     }
                     map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)) + count);
+                    System.out.println(getShortestDistance(getVertexForDijkstra(P1,P)) + count);
                 }
             }
         }
@@ -410,11 +412,18 @@ public class Bot {
                 graph[i][j] = getLinearDistance(p1, p2);
             }
         }
-
         for(int i = 0; i < C.size(); i++){
-            System.out.println(C.get(i).x + "," + C.get(i).y);
+            System.out.print(i + " ");
+            for(int j = 0; j < C.size(); j++){
+                System.out.print(graph[i][j] + " ");
+            }
+            System.out.println();
         }
-        System.out.println();
+//        System.out.println();
+//        for(int i = 0; i < C.size(); i++){
+//            System.out.println(C.get(i).x + "," + C.get(i).y);
+//        }
+//        System.out.println();
 
         //Dijkstra Shortest Path
 
@@ -772,10 +781,9 @@ public class Bot {
         return P3;
     }
 
-
-
-
-
+    private int getCurrentWormHealth(){
+        return currentWorm.health;
+    }
 
 
 //    public Command run() {
