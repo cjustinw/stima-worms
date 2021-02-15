@@ -1,6 +1,5 @@
 package za.co.entelect.challenge;
 
-import javafx.geometry.Pos;
 import za.co.entelect.challenge.command.*;
 import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.enums.CellType;
@@ -781,8 +780,57 @@ public class Bot {
         return P3;
     }
 
+    private int getCurrentWormDistanceFromLava(){
+        ArrayList<Cell> L = new ArrayList<Cell>();
+        for(int i = 0; i < gameState.mapSize; i++){
+            for(int j = 0; j < gameState.mapSize; j++){
+                if(gameState.map[i][j].type == CellType.LAVA){
+                    L.add(gameState.map[i][j]);
+                }
+            }
+        }
+        int minDistance = 9999;
+        if(!L.isEmpty()){
+            for(int i = 0; i < L.size(); i++){
+                Position lavaCell = new Position();
+                lavaCell.x = L.get(i).x;
+                lavaCell.y = L.get(i).y;
+                int minL = getEuclideanDistance(currentWorm.position, lavaCell);
+                if(minL < minDistance){
+                    minDistance = minL;
+                }
+            }
+        }
+        return minDistance;
+    }
+
+    private Worm getEnemyWithLowestHealth(){
+        int minHealth = 9999;
+        Worm enemy = new Worm();
+        for(int i = 0; i <3; i++){
+            if(allOpponentWorms[i].health < minHealth && allOpponentWorms[i].health != 0){
+                minHealth = allOpponentWorms[i].health;
+                enemy = allOpponentWorms[i];
+            }
+        }
+        return enemy;
+    }
+
     private int getCurrentWormHealth(){
         return currentWorm.health;
+    }
+
+    private int getClosestEnemyCurrentHealth() {
+        Position P = new Position();
+        P = getClosestEnemy();
+        int health = 0;
+        for(int i = 0; i < 3; i++){
+            if(allOpponentWorms[i].position == P){
+                health = allMyWorms[i].health;
+                break;
+            }
+        }
+        return health;
     }
 
 
