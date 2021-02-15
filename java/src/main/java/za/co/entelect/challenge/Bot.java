@@ -3,6 +3,7 @@ package za.co.entelect.challenge;
 import za.co.entelect.challenge.command.*;
 import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.enums.CellType;
+import za.co.entelect.challenge.enums.Direction;
 import za.co.entelect.challenge.enums.PowerUpType;
 
 import java.sql.SQLOutput;
@@ -36,6 +37,13 @@ public class Bot {
         Position P = new Position();
         P.x = 16;
         P.y = 16;
+
+        for(int i = 0; i < 3; i++){
+            if(isEnemyShootable(allOpponentWorms[i])){
+                Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
+                return new ShootCommand(direction);
+            }
+        }
 
         Position P1;
         P1 = getNextCellShortestPath(P);
@@ -161,7 +169,7 @@ public class Bot {
                         count += 1;
                     }
                     map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)) + count);
-                    System.out.println(getShortestDistance(getVertexForDijkstra(P1,P)) + count);
+//                    System.out.println(getShortestDistance(getVertexForDijkstra(P1,P)) + count);
                 }
             }
         }
@@ -205,6 +213,7 @@ public class Bot {
     private boolean isCoordinateValid(Position P){
         return ((P.x >= 0 && P.x <= 32)&&(P.y >= 0 && P.y <= 32)&&(gameState.map[P.y][P.x].type != CellType.DEEP_SPACE));
     }
+
     private boolean isCoordinateXYValid(int x, int y) {
         return (x >= 0 && x <= 32)&&(y >= 0 && y <= 32)&&(gameState.map[y][x].type != CellType.DEEP_SPACE);
     }
@@ -411,13 +420,13 @@ public class Bot {
                 graph[i][j] = getLinearDistance(p1, p2);
             }
         }
-        for(int i = 0; i < C.size(); i++){
-            System.out.print(i + " ");
-            for(int j = 0; j < C.size(); j++){
-                System.out.print(graph[i][j] + " ");
-            }
-            System.out.println();
-        }
+//        for(int i = 0; i < C.size(); i++){
+//            System.out.print(i + " ");
+//            for(int j = 0; j < C.size(); j++){
+//                System.out.print(graph[i][j] + " ");
+//            }
+//            System.out.println();
+//        }
 //        System.out.println();
 //        for(int i = 0; i < C.size(); i++){
 //            System.out.println(C.get(i).x + "," + C.get(i).y);
@@ -926,24 +935,24 @@ public class Bot {
 //                && y >= 0 && y < gameState.mapSize;
 //    }
 //
-//    private Direction resolveDirection(Position a, Position b) {
-//        StringBuilder builder = new StringBuilder();
-//
-//        int verticalComponent = b.y - a.y;
-//        int horizontalComponent = b.x - a.x;
-//
-//        if (verticalComponent < 0) {
-//            builder.append('N');
-//        } else if (verticalComponent > 0) {
-//            builder.append('S');
-//        }
-//
-//        if (horizontalComponent < 0) {
-//            builder.append('W');
-//        } else if (horizontalComponent > 0) {
-//            builder.append('E');
-//        }
-//
-//        return Direction.valueOf(builder.toString());
-//    }
+    private Direction resolveDirection(Position a, Position b) {
+        StringBuilder builder = new StringBuilder();
+
+        int verticalComponent = b.y - a.y;
+        int horizontalComponent = b.x - a.x;
+
+        if (verticalComponent < 0) {
+            builder.append('N');
+        } else if (verticalComponent > 0) {
+            builder.append('S');
+        }
+
+        if (horizontalComponent < 0) {
+            builder.append('W');
+        } else if (horizontalComponent > 0) {
+            builder.append('E');
+        }
+
+        return Direction.valueOf(builder.toString());
+    }
 }
