@@ -867,7 +867,7 @@ public class Bot {
                 for (int xRelative = -2; xRelative <= 2; xRelative++) {
                     for (int yRelative = -2; yRelative <= 2; yRelative++) {
                         Position currentWormPosition = enemyPosition[worm];
-                        
+
                     }
                 }
             }
