@@ -22,6 +22,10 @@ public class Bot {
     private Worm[] allOpponentWorms;
     private Cell[] presummedPowerupCells;
 
+    // akan menyimpan posisi terbaik untuk
+    private Position[] candidateBananaBombPosition;
+    private Position[] candidateSnowballPosition;
+
 
     public Bot(Random random, GameState gameState) {
         this.random = random;
@@ -63,6 +67,7 @@ public class Bot {
     }
 
     private Position[] getEnemyPosition () {
+        // mendapatkan Position worms musuh, (-999,-999) jika worms mati
         Position[] EnemyPosition = new Position[3];
         for (int k = 0; k < 3; k++) {
             if (gameState.opponents[0].worms[k].health > 0) {
@@ -70,7 +75,7 @@ public class Bot {
             }
             else {
                 Position P = new Position();
-                P.x = -1; P.y = -1;
+                P.x = -999; P.y = -999;
                 EnemyPosition[k] = P;
             }
         }
@@ -266,6 +271,21 @@ public class Bot {
     private boolean isCellInBananaBombBlastRange(Position PBomb, Position PTarget) {
         int xDifference = Math.abs(PBomb.x - PTarget.x);
         int yDifference = Math.abs(PBomb.y - PTarget.y);
+        if (xDifference <= 1 && yDifference <= 1) {
+            return TRUE;
+        }
+        else if (xDifference == 0 && yDifference == 2) {
+            return TRUE;
+        }
+        else if (xDifference == 2 && yDifference == 0) {
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    private boolean isCoordinateInBananaBombBlastRange(Position PCenter, int xTarget, int yTarget) {
+        int xDifference = Math.abs(PCenter.x - xTarget);
+        int yDifference = Math.abs(PCenter.y - yTarget);
         if (xDifference <= 1 && yDifference <= 1) {
             return TRUE;
         }
@@ -761,6 +781,97 @@ public class Bot {
             }
         }
         return powerupCells;
+    }
+
+    public Position createPosition (int xCoordinate, int yCooridnate) {
+        Position P = new Position();
+        P.x = xCoordinate;
+        P.y = yCooridnate;
+        return P;
+    }
+
+    public int getCoordinateDamageFromBananaBomb(Position PCenter, Position PTarget) {
+        int maxDamageInflicted;
+        int bananaBombMaxDamage = 20;
+        int bananaBombMaxRange = 2;
+        // menghitung damage yang dapat diterima worms bergantung pada jaraknya dengan posisi pelemparan Banana Bomb
+        int[] damageTier = new int[4];
+        for (int distance = 0; distance < 4; distance++) {
+            if (distance > 2) {
+                damageTier[distance] = 0;
+            }
+            else {
+                damageTier[distance] = (int) bananaBombMaxDamage * ((bananaBombMaxRange+1 - distance)/(bananaBombMaxDamage+1));
+            }
+        }
+
+        int xTarget = PTarget.x;
+        int yTarget = PTarget.y;
+        int distance = getEuclideanDistance(PCenter, PTarget);
+    }
+
+    public List<Position> getMaxBananaBombDamageByPlayer () {
+        // mengembalikan damage maksimum yang dapat di-inflict ke opponent
+        // dengan melakukan pelemparan Banana Bomb pada suatu round dengan asumsi womrs musuh tidak bergerak
+        // Prekondisi: Agent dapat menerima command, masih ada Banana Bomb
+
+        int maxDamageInflicted;
+        int bananaBombMaxDamage = 20;
+        int bananaBombMaxRange = 2;
+        // menghitung damage yang dapat diterima worms bergantung pada jaraknya dengan posisi pelemparan Banana Bomb
+        int[] damageTier = new int[4];
+        for (int distance = 0; distance < 4; distance++) {
+            if (distance > 2) {
+                damageTier[distance] = 0;
+            }
+            else {
+                damageTier[distance] = (int) bananaBombMaxDamage * ((bananaBombMaxRange+1 - distance)/(bananaBombMaxDamage+1));
+            }
+        }
+
+        // mendapatkan posisi Agent dan worms musuh
+        Position PAgent = gameState.myPlayer.worms[1].position;
+
+        Position[] enemyPosition = new Position[3];
+        enemyPosition = getEnemyPosition();
+
+        // mendapatkan jarak Agent ke masing-masing musuh
+        int[] enemyDistances = new int[3];
+        for (int k = 0; k < 3; k++) {
+            if (enemyPosition[k].x >= 0){
+                enemyDistances[k] = getEuclideanDistance(PAgent, enemyPosition[k]);
+            }
+            else {
+                enemyDistances[k] = 999;
+            }
+        }
+
+        // menghitung jumlah
+        Position PCurrentBomb = new Position();
+        List<Position> candidatePosition = new ArrayList<Position>();
+
+        //initialize damageMap
+        int[][] damageMap = new int[33][33];    // mencatat pemetaan damage yand ditimbulkan ke worms musuh
+        for (int i = 0; i < 33; i++) {
+            for (int j = 0; j < 33; j++) {
+                damageMap[i][j] = 0;
+            }
+        }
+
+        for (int worm = 0; worm < 3; worm++) {
+            if (enemyDistances[worm] > 7 || gameState.opponents[0].worms[worm].health <= 0) {
+                continue;
+            }
+            else {
+                // mengevaluasi
+                for (int xRelative = -2; xRelative <= 2; xRelative++) {
+                    for (int yRelative = -2; yRelative <= 2; yRelative++) {
+                        Position currentWormPosition = enemyPosition[worm];
+                        
+                    }
+                }
+            }
+        }
     }
 
     public Position getClosestPowerup() {
