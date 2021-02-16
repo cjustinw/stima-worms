@@ -39,9 +39,7 @@ public class Bot {
     }
 
     public Command run(){
-        Position P = new Position();
-        P.x = 16;
-        P.y = 16;
+        Position P = getClosestPowerup();
 
         for(int i = 0; i < 3; i++){
             if(isEnemyShootable(allOpponentWorms[i])){
@@ -566,6 +564,15 @@ public class Bot {
         return isShootable;
     }
 
+    private boolean isAnyMyWormInPosition(int x, int y){
+        for(int i = 0; i < 3; i++){
+            if((allMyWorms[i].position.x == x) && (allMyWorms[i].position.y == y) && (allMyWorms[i].health > 0)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isAnyObstacleBetween(Position P1, Position P2){
         boolean obstacle = false;
         if(P1.y == P2.y){
@@ -578,7 +585,7 @@ public class Bot {
                 else{
                     a = i;
                 }
-                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT){
+                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT || isAnyMyWormInPosition(P1.x + a,P1.y)){
                     obstacle = true;
                     break;
                 }
@@ -594,7 +601,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT){
+                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT || isAnyMyWormInPosition(P1.x,P1.y + b)){
                     obstacle = true;
                     break;
                 }
@@ -616,7 +623,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT){
+                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT || isAnyMyWormInPosition(P1.x + a,P1.y + b)){
                     obstacle = true;
                     break;
                 }
@@ -850,7 +857,7 @@ public class Bot {
         P3.y = -99;
         for(int i=0;i<allMyWorms.length;i++) {
             for(int j=0;j<allOpponentWorms.length;j++) {
-                if(getLinearDistance(allMyWorms[i].position, allOpponentWorms[j].position) < closestDistance) {
+                if(getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, allOpponentWorms[j].position)) < closestDistance) {
                     closestDistance = getLinearDistance(allMyWorms[i].position, allOpponentWorms[j].position);
                     P3.x = allOpponentWorms[j].position.x;
                     P3.y = allOpponentWorms[j].position.y;
@@ -1146,9 +1153,9 @@ public class Bot {
 
     public Position getClosestPowerup() {
         Position P3 = new Position();
+        P3.x = 16;
+        P3.y = 16;
         Position tempPowerupPosition = new Position();
-        P3.x = 9999;
-        P3.y = 9999;
         int minDistance = 9999;
         for(int i=0;i<allMyWorms.length;i++) {
             for(int j=0;j<presummedPowerupCells.length;j++) {
@@ -1157,8 +1164,8 @@ public class Bot {
                 } else {
                     tempPowerupPosition.x = presummedPowerupCells[j].x;
                     tempPowerupPosition.y = presummedPowerupCells[j].y;
-                    if (presummedPowerupCells[j].powerUp != null && getLinearDistance(allMyWorms[i].position, tempPowerupPosition) < minDistance) {
-                        minDistance = getLinearDistance(allMyWorms[i].position, tempPowerupPosition);
+                    if (presummedPowerupCells[j].powerUp != null && getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, tempPowerupPosition)) < minDistance) {
+                        minDistance = getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, tempPowerupPosition));
                         P3 = tempPowerupPosition;
                     }
                 }
