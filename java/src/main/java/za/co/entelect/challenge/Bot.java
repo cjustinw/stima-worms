@@ -314,17 +314,17 @@ public class Bot {
         L.add(gameState.map[Psrc.y][Psrc.x]);
         if(!isDiagonal(Psrc, Pdest)) {
             if (isSejajarSbX(Psrc, Pdest)) {
-                if (Math.abs(Psrc.x - Pdest.x) % 2 == 0) {
-                    int val = (Pdest.x - Psrc.x) / 2;
-                    L.add(gameState.map[Pdest.y + val][Pdest.x - val]);
-                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
-                }
+//                if (Math.abs(Psrc.x - Pdest.x) % 2 == 0) {
+//                    int val = (Pdest.x - Psrc.x) / 2;
+//                    L.add(gameState.map[Pdest.y + val][Pdest.x - val]);
+//                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
+//                }
             } else if (isSejajarSbY(Psrc, Pdest)) {
-                if (Math.abs(Psrc.y - Pdest.y) % 2 == 0) {
-                    int val = (Pdest.y - Psrc.y) / 2;
-                    L.add(gameState.map[Pdest.y - val][Pdest.x + val]);
-                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
-                }
+//                if (Math.abs(Psrc.y - Pdest.y) % 2 == 0) {
+//                    int val = (Pdest.y - Psrc.y) / 2;
+//                    L.add(gameState.map[Pdest.y - val][Pdest.x + val]);
+//                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
+//                }
             } else {
                 Position P1 = new Position();
                 Position P2 = new Position();
@@ -506,30 +506,92 @@ public class Bot {
         // P1 = currentWorm Position
         // P2 = targetWorm Position
 
-        boolean isShootable = true;
+        boolean isShootable = false;
         int maxRange = 4;
         Position P1 = currentWorm.position;
         Position P2 = targetWorm.position;
-        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-            if(isAnyObstacleInRange(P1,P2,0) || isAnyWormInRange(P1,P2,0)){
-                isShootable = false;
-            }
-        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-            if(isAnyObstacleInRange(P1,P2,1) || isAnyWormInRange(P1,P2,1)){
-                isShootable = false;
-            }
-        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-            if(isAnyObstacleInRange(P1,P2,2) || isAnyWormInRange(P1,P2,2)){
-                isShootable = false;
-            }
-        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-            if(isAnyObstacleInRange(P1,P2,3) || isAnyWormInRange(P1,P2,3)){
-                isShootable = false;
-            }
-        } else {
-            isShootable = false;
+        if(getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(P1,P2)) {
+            isShootable = true;
         }
+//        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
+//            if(isAnyObstacleInRange(P1,P2,0) || isAnyWormInRange(P1,P2,0)){
+//                isShootable = false;
+//            }
+//        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
+//            if(isAnyObstacleInRange(P1,P2,1) || isAnyWormInRange(P1,P2,1)){
+//                isShootable = false;
+//            }
+//        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
+//            if(isAnyObstacleInRange(P1,P2,2) || isAnyWormInRange(P1,P2,2)){
+//                isShootable = false;
+//            }
+//        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
+//            if(isAnyObstacleInRange(P1,P2,3) || isAnyWormInRange(P1,P2,3)){
+//                isShootable = false;
+//            }
+//        } else {
+//            isShootable = false;
+//        }
         return isShootable;
+    }
+
+    private boolean isAnyObstacleBetween(Position P1, Position P2){
+        boolean obstacle = false;
+        if(P1.y == P2.y){
+            int val = Math.abs(P1.x - P2.x);
+            for(int i = 1; i <= val; i++){
+                int a;
+                if(P1.x > P2.x){
+                    a = -1*i;
+                }
+                else{
+                    a = i;
+                }
+                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT){
+                    obstacle = true;
+                    break;
+                }
+            }
+        }
+        else if(P1.x == P2.x){
+            int val = Math.abs(P1.y - P2.y);
+            for(int i = 1; i <= val; i++){
+                int b;
+                if(P1.y > P2.y){
+                    b = i*-1;
+                }
+                else{
+                    b = i;
+                }
+                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT){
+                    obstacle = true;
+                    break;
+                }
+            }
+        }
+        else if(Math.abs(P1.x - P2.x) == Math.abs(P1.y - P2.y)){
+            int val = Math.abs(P1.y - P2.y);
+            for(int i = 1; i <= val; i++){
+                int a,b;
+                if(P1.x > P2.x){
+                    a = -1*i;
+                }
+                else{
+                    a = i;
+                }
+                if(P1.y > P2.y){
+                    b = i*-1;
+                }
+                else{
+                    b = i;
+                }
+                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT){
+                    obstacle = true;
+                    break;
+                }
+            }
+        }
+        return obstacle;
     }
 
     public boolean isAnyObstacleInRange(Position P1, Position P2, int directionSearch) {
