@@ -836,9 +836,9 @@ public class Bot {
 
     public Position getClosestPowerup() {
         Position P3 = new Position();
+        P3.x = 16;
+        P3.y = 16;
         Position tempPowerupPosition = new Position();
-        P3.x = 9999;
-        P3.y = 9999;
         int minDistance = 9999;
         for(int i=0;i<allMyWorms.length;i++) {
             for(int j=0;j<presummedPowerupCells.length;j++) {
@@ -847,8 +847,8 @@ public class Bot {
                 } else {
                     tempPowerupPosition.x = presummedPowerupCells[j].x;
                     tempPowerupPosition.y = presummedPowerupCells[j].y;
-                    if (presummedPowerupCells[j].powerUp != null && getLinearDistance(allMyWorms[i].position, tempPowerupPosition) < minDistance) {
-                        minDistance = getLinearDistance(allMyWorms[i].position, tempPowerupPosition);
+                    if (presummedPowerupCells[j].powerUp != null && getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, tempPowerupPosition)) < minDistance) {
+                        minDistance = getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, tempPowerupPosition));
                         P3 = tempPowerupPosition;
                     }
                 }
