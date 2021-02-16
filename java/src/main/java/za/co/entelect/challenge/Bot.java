@@ -517,6 +517,18 @@ public class Bot {
         return isShootable;
     }
 
+    private boolean isAnyMyWormInPosition(int x, int y){
+        Position P = new Position();
+        P.x = x;
+        P.y = y;
+        for(int i = 0; i <= 3; i++){
+            if(allMyWorms[i] != currentWorm && allMyWorms[i].position == P){
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isAnyObstacleBetween(Position P1, Position P2){
         boolean obstacle = false;
         if(P1.y == P2.y){
@@ -529,7 +541,7 @@ public class Bot {
                 else{
                     a = i;
                 }
-                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT){
+                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT && isAnyMyWormInPosition(P1.x + a,P1.y)){
                     obstacle = true;
                     break;
                 }
@@ -545,7 +557,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT){
+                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT && isAnyMyWormInPosition(P1.x,P1.y + b)){
                     obstacle = true;
                     break;
                 }
@@ -567,7 +579,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT){
+                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT && isAnyMyWormInPosition(P1.x + a,P1.y + b)){
                     obstacle = true;
                     break;
                 }
