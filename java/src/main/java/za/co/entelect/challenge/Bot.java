@@ -521,8 +521,8 @@ public class Bot {
         Position P = new Position();
         P.x = x;
         P.y = y;
-        for(int i = 0; i <= 3; i++){
-            if(allMyWorms[i] != currentWorm && allMyWorms[i].position == P){
+        for(int i = 0; i < 3; i++){
+            if(allMyWorms[i].position == P && allMyWorms[i].health > 0){
                 return true;
             }
         }
@@ -541,7 +541,7 @@ public class Bot {
                 else{
                     a = i;
                 }
-                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT && isAnyMyWormInPosition(P1.x + a,P1.y)){
+                if(gameState.map[P1.y][P1.x + a].type == CellType.DIRT || isAnyMyWormInPosition(P1.x + a,P1.y)){
                     obstacle = true;
                     break;
                 }
@@ -557,7 +557,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT && isAnyMyWormInPosition(P1.x,P1.y + b)){
+                if(gameState.map[P1.y + b][P1.x].type == CellType.DIRT || isAnyMyWormInPosition(P1.x,P1.y + b)){
                     obstacle = true;
                     break;
                 }
@@ -579,7 +579,7 @@ public class Bot {
                 else{
                     b = i;
                 }
-                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT && isAnyMyWormInPosition(P1.x + a,P1.y + b)){
+                if(gameState.map[P1.y + b][P1.x + a].type == CellType.DIRT || isAnyMyWormInPosition(P1.x + a,P1.y + b)){
                     obstacle = true;
                     break;
                 }
