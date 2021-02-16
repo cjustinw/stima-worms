@@ -23,8 +23,8 @@ public class Bot {
     private Cell[] presummedPowerupCells;
 
     // akan menyimpan posisi terbaik untuk
-    private Position[] candidateBananaBombPosition;
-    private Position[] candidateSnowballPosition;
+    private List<Position> candidateBananaBombPosition;
+    private List<Position> candidateSnowballPosition;
 
 
     public Bot(Random random, GameState gameState) {
@@ -80,6 +80,20 @@ public class Bot {
             }
         }
         return EnemyPosition;
+    }
+
+    private Position[] getMyWormsPosition () {
+        // mendapatkan Position worms Player, (-999,-999) jika worms mati
+        Position[] myWormsPosition = new Position[3];
+        for (int k = 0; k < 3; k++) {
+            if (gameState.myPlayer.worms[k].health > 0) {
+                myWormsPosition[k] = gameState.myPlayer.worms[k].position;
+            }
+            else {
+                myWormsPosition[k] = createPosition(-999,-999);
+            }
+        }
+        return myWormsPosition;
     }
 
     private int getEuclideanDistance (Position P1, Position P2) {
@@ -281,6 +295,11 @@ public class Bot {
             return TRUE;
         }
         return FALSE;
+    }
+
+    private boolean isCellInBananaBombThrowRange (Position PTarget, Position PSource) {
+        boolean cellThrowable = gameState.map[PTarget.x][PTarget.y].type != CellType.DEEP_SPACE && gameState.map[PSource.x][PSource.y].type != CellType.DEEP_SPACE;
+        return getEuclideanDistance(PTarget, PSource) <= 5 && cellThrowable;
     }
 
     private boolean isCoordinateInBananaBombBlastRange(Position PCenter, int xTarget, int yTarget) {
@@ -852,7 +871,7 @@ public class Bot {
         return P;
     }
 
-    public int getCoordinateDamageFromBananaBomb(Position PCenter, Position PTarget) {
+    public int getCellDamageFromBananaBomb(Position PCenter, Position PTarget) {
         int maxDamageInflicted;
         int bananaBombMaxDamage = 20;
         int bananaBombMaxRange = 2;
@@ -866,18 +885,16 @@ public class Bot {
                 damageTier[distance] = (int) bananaBombMaxDamage * ((bananaBombMaxRange+1 - distance)/(bananaBombMaxDamage+1));
             }
         }
-
-        int xTarget = PTarget.x;
-        int yTarget = PTarget.y;
         int distance = getEuclideanDistance(PCenter, PTarget);
+
+        return damageTier[distance % 4];
     }
 
-    public List<Position> getMaxBananaBombDamageByPlayer () {
+    public int getMaxBananaBombDamageByPlayer () {
         // mengembalikan damage maksimum yang dapat di-inflict ke opponent
         // dengan melakukan pelemparan Banana Bomb pada suatu round dengan asumsi womrs musuh tidak bergerak
         // Prekondisi: Agent dapat menerima command, masih ada Banana Bomb
 
-        int maxDamageInflicted;
         int bananaBombMaxDamage = 20;
         int bananaBombMaxRange = 2;
         // menghitung damage yang dapat diterima worms bergantung pada jaraknya dengan posisi pelemparan Banana Bomb
@@ -908,32 +925,71 @@ public class Bot {
             }
         }
 
-        // menghitung jumlah
-        Position PCurrentBomb = new Position();
-        List<Position> candidatePosition = new ArrayList<Position>();
+        // mencatat posisi musuh
+        Position[] myWormsPosition = getMyWormsPosition();
+
 
         //initialize damageMap
         int[][] damageMap = new int[33][33];    // mencatat pemetaan damage yand ditimbulkan ke worms musuh
         for (int i = 0; i < 33; i++) {
             for (int j = 0; j < 33; j++) {
-                damageMap[i][j] = 0;
+                damageMap[i][j] = -999;
             }
         }
 
         for (int worm = 0; worm < 3; worm++) {
             if (enemyDistances[worm] > 7 || gameState.opponents[0].worms[worm].health <= 0) {
+                // tidak perlu mengevaluasi damage terhadap worm musuh ini
                 continue;
             }
             else {
-                // mengevaluasi
+                // mengevaluasi damage terhadap worm musuh; mencatat damage terbaik pada damageMap
+                Position pCurrentEnemyPosition = enemyPosition[worm];
+                int xCenter = pCurrentEnemyPosition.x; int yCenter = pCurrentEnemyPosition.y;
+
                 for (int xRelative = -2; xRelative <= 2; xRelative++) {
                     for (int yRelative = -2; yRelative <= 2; yRelative++) {
-                        Position currentWormPosition = enemyPosition[worm];
+                        // cell tempat bomb akan dilempar yang akan dievaluasi damage yang dapat diberikan
+                        Position PEval = createPosition(xCenter+xRelative, yCenter+yRelative);
+                        if (isCellInBananaBombBlastRange(PEval, pCurrentEnemyPosition)) {
+                            if (isCellInBananaBombThrowRange(PEval, PAgent)) {
+                                int currentEnemyInflictedDamage = getCellDamageFromBananaBomb(PEval, pCurrentEnemyPosition);
+                                damageMap[xCenter+xRelative][yCenter+yRelative] += currentEnemyInflictedDamage;
+                            }
+                        }
+                    }
+                }
+                // selesai mengevaluasi cell di sekitar worm yang dapat memberikan damage
+            }
+        }
 
+        List<Position> candidatePosition = new ArrayList<Position>();
+        int maxDamageInflicted = -999;
+        // mengevaluasi colateral damage pada worms sendiri
+        for (int i = 0; i < 33; i++) {
+            for (int j = 0; j < 33; j++) {
+                if (damageMap[i][j] != -999) {
+                    // cell telah dievaluasi sebelumnya (considerable)
+                    Position PEval = createPosition(i, j);
+                    int alliesInflictedDamage = getCellDamageFromBananaBomb(PEval, myWormsPosition[0]) + getCellDamageFromBananaBomb(PEval, myWormsPosition[2]);
+                    damageMap[i][j] -= alliesInflictedDamage;
+
+                    if (damageMap[i][j] > maxDamageInflicted) {
+                        // ada cell baru yang memberi damage terbesar sejauh ini
+                        maxDamageInflicted = damageMap[i][j];
+                        candidatePosition.clear();
+                        candidatePosition.add(createPosition(i, j));
+                    }
+                    else if (damageMap[i][j] == maxDamageInflicted) {
+                        // ada cell lain yang sama memberikan damage sama baiknya
+                        candidatePosition.add(createPosition(i, j));
                     }
                 }
             }
         }
+        // update atribut di class
+        candidateBananaBombPosition = candidatePosition;
+        return maxDamageInflicted;
     }
 
     public Position getClosestPowerup() {
