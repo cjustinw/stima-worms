@@ -34,9 +34,7 @@ public class Bot {
     }
 
     public Command run(){
-        Position P = new Position();
-        P.x = 16;
-        P.y = 16;
+        Position P = getClosestPowerup();
 
         for(int i = 0; i < 3; i++){
             if(isEnemyShootable(allOpponentWorms[i])){
@@ -518,11 +516,8 @@ public class Bot {
     }
 
     private boolean isAnyMyWormInPosition(int x, int y){
-        Position P = new Position();
-        P.x = x;
-        P.y = y;
         for(int i = 0; i < 3; i++){
-            if(allMyWorms[i].position == P && allMyWorms[i].health > 0){
+            if((allMyWorms[i].position.x == x) && (allMyWorms[i].position.y == y) && (allMyWorms[i].health > 0)){
                 return true;
             }
         }
@@ -813,7 +808,7 @@ public class Bot {
         P3.y = -99;
         for(int i=0;i<allMyWorms.length;i++) {
             for(int j=0;j<allOpponentWorms.length;j++) {
-                if(getLinearDistance(allMyWorms[i].position, allOpponentWorms[j].position) < closestDistance) {
+                if(getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, allOpponentWorms[j].position)) < closestDistance) {
                     closestDistance = getLinearDistance(allMyWorms[i].position, allOpponentWorms[j].position);
                     P3.x = allOpponentWorms[j].position.x;
                     P3.y = allOpponentWorms[j].position.y;
