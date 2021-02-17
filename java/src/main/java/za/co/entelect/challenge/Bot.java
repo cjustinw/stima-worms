@@ -632,6 +632,12 @@ public class Bot {
         return obstacle;
     }
 
+    public int getDamageIfEnemyShootable(Worm targetWorm) {
+        if(isEnemyShootable(targetWorm)) {
+            return 8;
+        } else return 0;
+    }
+
     public boolean isAnyObstacleInRange(Position P1, Position P2, int directionSearch) {
         // Asumsi input valid
         // Untuk search horizontal (P1.y == P2.y), directionSearch = 0
@@ -995,161 +1001,161 @@ public class Bot {
         return maxDamageInflicted;
     }
 
-    public int getMaxBananaBombDamageByEnemy () {
-        // mengembalikan damage maksimum yang dapat di-inflict ke Player
-        // dengan melakukan pelemparan Banana Bomb pada suatu round dengan asumsi womrs musuh tidak bergerak
-        // Prekondisi: Agent musuh dapat menerima command, masih ada Banana Bomb
-
-        // mendapatkan posisi Agent musuh dan worms
-        Position PAgent = gameState.opponents[0].worms[1].position;
-
-        Position[] myWormsPosition = getMyWormsPosition();
-        Position[] enemyPosition = getEnemyPosition();
-
-        // mendapatkan jarak Agent musuh ke masing-masing worm kita
-        int[] myDistances = new int[3];
-        for (int k = 0; k < 3; k++) {
-            if (myWormsPosition[k].x >= 0){
-                myDistances[k] = getEuclideanDistance(PAgent, myWormsPosition[k]);
-            }
-            else {
-                myDistances[k] = 999;
-            }
-        }
-
-        //initialize damageMap
-        int[][] damageMap = new int[33][33];    // mencatat pemetaan damage yand ditimbulkan ke worms musuh
-        for (int i = 0; i < 33; i++) {
-            for (int j = 0; j < 33; j++) {
-                damageMap[i][j] = 0;
-            }
-        }
-
-        for (int worm = 0; worm < 3; worm++) {
-            if (myDistances[worm] > 7 || gameState.myPlayer.worms[worm].health <= 0) {
-                // tidak perlu mengevaluasi damage terhadap worm Player yang satu ini
-                continue;
-            }
-            else {
-                // mengevaluasi damage terhadap worm Player; mencatat damage pada damageMap
-                Position pCurrentWormPosition = myWormsPosition[worm];
-                int xCenter = pCurrentWormPosition.x; int yCenter = pCurrentWormPosition.y;
-
-                for (int xRelative = -2; xRelative <= 2; xRelative++) {
-                    for (int yRelative = -2; yRelative <= 2; yRelative++) {
-                        // cell tempat bomb akan dilempar yang akan dievaluasi damage yang dapat diterima
-                        Position PEval = createPosition(xCenter+xRelative, yCenter+yRelative);
-                        if (isCellInBananaBombBlastRange(PEval, pCurrentWormPosition)) {
-                            if (isCellInBananaBombThrowRange(PEval, PAgent)) {
-                                int currentWormInflictedDamage = getCellDamageFromBananaBomb(PEval, pCurrentWormPosition);
-                                damageMap[xCenter+xRelative][yCenter+yRelative] += currentWormInflictedDamage;
-                            }
-                        }
-                    }
-                }
-                // selesai mengevaluasi cell di sekitar worm Player yang dapat memberikan damage kepada Player
-            }
-        }
-
-        List<Position> candidatePosition = new ArrayList<Position>();
-        int maxDamageInflicted = 0;
-        // mengevaluasi colateral damage pada worms musuh
-        for (int i = 0; i < 33; i++) {
-            for (int j = 0; j < 33; j++) {
-                if (damageMap[i][j] != 0) {
-                    // cell telah dievaluasi sebelumnya (considerable)
-                    Position PEval = createPosition(i, j);
-                    int opponentAlliesInflictedDamage = 0;
-                    for (int k = 0; k < 3; k++) {
-                        opponentAlliesInflictedDamage += getCellDamageFromBananaBomb(PEval, myWormsPosition[k]);
-                    }
-                    damageMap[i][j] -= opponentAlliesInflictedDamage;
-
-                    if (damageMap[i][j] > maxDamageInflicted) {
-                        // ada cell baru yang memberi damage terbesar sejauh ini
-                        maxDamageInflicted = damageMap[i][j];
-                        candidatePosition.clear();
-                        candidatePosition.add(createPosition(i, j));
-                    }
-                    else if (damageMap[i][j] == maxDamageInflicted) {
-                        // ada cell lain yang sama memberikan damage sama baiknya
-                        candidatePosition.add(createPosition(i, j));
-                    }
-                }
-            }
-        }
-        // update atribut di class
-        candidateBananaBombPositionByEnemy = candidatePosition;
-        return maxDamageInflicted;
-    }
-
-    public int getMaxSnowballImpactByPlayer () {
-        // Mengembalikan "impact" terbesar yang dapat di-inflict kepada musuh dengan pelemparan Snowball
-        // dengan asumsi worms musuh tidak bergerak
-        // "Impact" dihitung dengan mengevaluasi gambaran kasar kemungkinan serangan dalam 5 round ke depan
-        // Prekondisi:
-        // Technologist dapat menerima command dan masih ada Snowball
-
-        // mendapatkan posisi Agent dan worms
-        Position PTechnologist = gameState.myPlayer.worms[2].position;
-
-        Position[] enemyPosition = getEnemyPosition();
-        Position[] myWormsPosition = getMyWormsPosition();
-
-        // mendapatkan jarak Technologist ke masing-masing musuh
-        int[] enemyDistances = new int[3];
-        for (int k = 0; k < 3; k++) {
-            if (enemyPosition[k].x >= 0){
-                enemyDistances[k] = getEuclideanDistance(PTechnologist, enemyPosition[k]);
-            }
-            else {
-                enemyDistances[k] = 999;
-            }
-        }
-
-        // initialize snowballableMap
-        // mencatat apakah pelemparan snowball pada Cell [i][j] dapat membekukan worm k
-        // 0-2: player worms, 3-5: enemy worms
-        boolean[][][] snowballableMap = new boolean[33][33][6];
-        for (int i = 0; i < 33; i++) {
-            for (int j = 0; j < 33; j++) {
-                for (int k = 0; k < 6; k++) {
-                    snowballableMap[i][j][k] = FALSE;
-                }
-            }
-        }
-
-        // mencari efek pelemparan snowball terhadap semua Player
-        for (int k = 0; k < 6; k++) {
-            Position PCurrentWorm;
-            if (k < 3) { // worms Player
-                PCurrentWorm = myWormsPosition[k];
-            }
-            else { // worms musuh
-                PCurrentWorm = enemyPosition[k%3];
-            }
-            int xCurrrent = PCurrentWorm.x; int yCurrent = PCurrentWorm.y;
-            if (xCurrrent == -999) { // worm sudah mati
-                continue;
-            }
-
-            // tinjau Cells di sekitar worm
-            for (int xRelative = -1; xRelative <= 1; xRelative++) {
-                for (int yRelative = -1; yRelative <= 1; yRelative++) {
-                    Position PEval = createPosition(xCurrrent+xRelative, yCurrent+yRelative);
-                    if (isCellInSnowballThrowRange(PEval, PTechnologist)) {
-                        snowballableMap[xCurrrent][yCurrent][k] = TRUE;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // menghitung Impact yang diterima setiap worm jika terkena ter-freeze
-        for (int k = 0; k < 6; k++) {
-
-        }
-    }
+//    public int getMaxBananaBombDamageByEnemy () {
+//        // mengembalikan damage maksimum yang dapat di-inflict ke Player
+//        // dengan melakukan pelemparan Banana Bomb pada suatu round dengan asumsi womrs musuh tidak bergerak
+//        // Prekondisi: Agent musuh dapat menerima command, masih ada Banana Bomb
+//
+//        // mendapatkan posisi Agent musuh dan worms
+//        Position PAgent = gameState.opponents[0].worms[1].position;
+//
+//        Position[] myWormsPosition = getMyWormsPosition();
+//        Position[] enemyPosition = getEnemyPosition();
+//
+//        // mendapatkan jarak Agent musuh ke masing-masing worm kita
+//        int[] myDistances = new int[3];
+//        for (int k = 0; k < 3; k++) {
+//            if (myWormsPosition[k].x >= 0){
+//                myDistances[k] = getEuclideanDistance(PAgent, myWormsPosition[k]);
+//            }
+//            else {
+//                myDistances[k] = 999;
+//            }
+//        }
+//
+//        //initialize damageMap
+//        int[][] damageMap = new int[33][33];    // mencatat pemetaan damage yand ditimbulkan ke worms musuh
+//        for (int i = 0; i < 33; i++) {
+//            for (int j = 0; j < 33; j++) {
+//                damageMap[i][j] = 0;
+//            }
+//        }
+//
+//        for (int worm = 0; worm < 3; worm++) {
+//            if (myDistances[worm] > 7 || gameState.myPlayer.worms[worm].health <= 0) {
+//                // tidak perlu mengevaluasi damage terhadap worm Player yang satu ini
+//                continue;
+//            }
+//            else {
+//                // mengevaluasi damage terhadap worm Player; mencatat damage pada damageMap
+//                Position pCurrentWormPosition = myWormsPosition[worm];
+//                int xCenter = pCurrentWormPosition.x; int yCenter = pCurrentWormPosition.y;
+//
+//                for (int xRelative = -2; xRelative <= 2; xRelative++) {
+//                    for (int yRelative = -2; yRelative <= 2; yRelative++) {
+//                        // cell tempat bomb akan dilempar yang akan dievaluasi damage yang dapat diterima
+//                        Position PEval = createPosition(xCenter+xRelative, yCenter+yRelative);
+//                        if (isCellInBananaBombBlastRange(PEval, pCurrentWormPosition)) {
+//                            if (isCellInBananaBombThrowRange(PEval, PAgent)) {
+//                                int currentWormInflictedDamage = getCellDamageFromBananaBomb(PEval, pCurrentWormPosition);
+//                                damageMap[xCenter+xRelative][yCenter+yRelative] += currentWormInflictedDamage;
+//                            }
+//                        }
+//                    }
+//                }
+//                // selesai mengevaluasi cell di sekitar worm Player yang dapat memberikan damage kepada Player
+//            }
+//        }
+//
+//        List<Position> candidatePosition = new ArrayList<Position>();
+//        int maxDamageInflicted = 0;
+//        // mengevaluasi colateral damage pada worms musuh
+//        for (int i = 0; i < 33; i++) {
+//            for (int j = 0; j < 33; j++) {
+//                if (damageMap[i][j] != 0) {
+//                    // cell telah dievaluasi sebelumnya (considerable)
+//                    Position PEval = createPosition(i, j);
+//                    int opponentAlliesInflictedDamage = 0;
+//                    for (int k = 0; k < 3; k++) {
+//                        opponentAlliesInflictedDamage += getCellDamageFromBananaBomb(PEval, myWormsPosition[k]);
+//                    }
+//                    damageMap[i][j] -= opponentAlliesInflictedDamage;
+//
+//                    if (damageMap[i][j] > maxDamageInflicted) {
+//                        // ada cell baru yang memberi damage terbesar sejauh ini
+//                        maxDamageInflicted = damageMap[i][j];
+//                        candidatePosition.clear();
+//                        candidatePosition.add(createPosition(i, j));
+//                    }
+//                    else if (damageMap[i][j] == maxDamageInflicted) {
+//                        // ada cell lain yang sama memberikan damage sama baiknya
+//                        candidatePosition.add(createPosition(i, j));
+//                    }
+//                }
+//            }
+//        }
+//        // update atribut di class
+//        candidateBananaBombPositionByEnemy = candidatePosition;
+//        return maxDamageInflicted;
+//    }
+//
+//    public int getMaxSnowballImpactByPlayer () {
+//        // Mengembalikan "impact" terbesar yang dapat di-inflict kepada musuh dengan pelemparan Snowball
+//        // dengan asumsi worms musuh tidak bergerak
+//        // "Impact" dihitung dengan mengevaluasi gambaran kasar kemungkinan serangan dalam 5 round ke depan
+//        // Prekondisi:
+//        // Technologist dapat menerima command dan masih ada Snowball
+//
+//        // mendapatkan posisi Agent dan worms
+//        Position PTechnologist = gameState.myPlayer.worms[2].position;
+//
+//        Position[] enemyPosition = getEnemyPosition();
+//        Position[] myWormsPosition = getMyWormsPosition();
+//
+//        // mendapatkan jarak Technologist ke masing-masing musuh
+//        int[] enemyDistances = new int[3];
+//        for (int k = 0; k < 3; k++) {
+//            if (enemyPosition[k].x >= 0){
+//                enemyDistances[k] = getEuclideanDistance(PTechnologist, enemyPosition[k]);
+//            }
+//            else {
+//                enemyDistances[k] = 999;
+//            }
+//        }
+//
+//        // initialize snowballableMap
+//        // mencatat apakah pelemparan snowball pada Cell [i][j] dapat membekukan worm k
+//        // 0-2: player worms, 3-5: enemy worms
+//        boolean[][][] snowballableMap = new boolean[33][33][6];
+//        for (int i = 0; i < 33; i++) {
+//            for (int j = 0; j < 33; j++) {
+//                for (int k = 0; k < 6; k++) {
+//                    snowballableMap[i][j][k] = FALSE;
+//                }
+//            }
+//        }
+//
+//        // mencari efek pelemparan snowball terhadap semua Player
+//        for (int k = 0; k < 6; k++) {
+//            Position PCurrentWorm;
+//            if (k < 3) { // worms Player
+//                PCurrentWorm = myWormsPosition[k];
+//            }
+//            else { // worms musuh
+//                PCurrentWorm = enemyPosition[k%3];
+//            }
+//            int xCurrrent = PCurrentWorm.x; int yCurrent = PCurrentWorm.y;
+//            if (xCurrrent == -999) { // worm sudah mati
+//                continue;
+//            }
+//
+//            // tinjau Cells di sekitar worm
+//            for (int xRelative = -1; xRelative <= 1; xRelative++) {
+//                for (int yRelative = -1; yRelative <= 1; yRelative++) {
+//                    Position PEval = createPosition(xCurrrent+xRelative, yCurrent+yRelative);
+//                    if (isCellInSnowballThrowRange(PEval, PTechnologist)) {
+//                        snowballableMap[xCurrrent][yCurrent][k] = TRUE;
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//
+//        // menghitung Impact yang diterima setiap worm jika terkena ter-freeze
+//        for (int k = 0; k < 6; k++) {
+//
+//        }
+//    }
 
     public Position getClosestPowerup() {
         Position P3 = new Position();
@@ -1224,6 +1230,28 @@ public class Bot {
             }
         }
         return health;
+    }
+
+    public int getMaxDamagePossibleGiven(int player) {
+        // player = 0 : Ally
+        // player = 1 : Opponent
+        int maxDamage = 0;
+        Worm attacker;
+        Worm[] recievers;
+        if(player == 0) {
+            attacker = currentWorm;
+            recievers = allOpponentWorms;
+        } else {
+            attacker = currentWorm; // Nunggu currentEnemyWorm
+            recievers = allMyWorms;
+        }
+        for(int i=0;i<recievers.length;i++) {
+            if(maxDamage < getDamageIfEnemyShootable(recievers[i])) {
+                maxDamage = 8;
+            }
+            // Nunggu Damage Bananabomb sama Snowball
+        }
+        return maxDamage;
     }
 
 
