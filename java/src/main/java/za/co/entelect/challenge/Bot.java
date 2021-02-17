@@ -1239,24 +1239,25 @@ public class Bot {
         return health;
     }
 
-    public int getMaxDamagePossibleGiven(int player) {
-        // player = 0 : Ally
-        // player = 1 : Opponent
+    public int getMaxDamagePossibleGiven() {
         int maxDamage = 0;
-        Worm attacker;
-        Worm[] recievers;
-        if(player == 0) {
-            attacker = currentWorm;
-            recievers = allOpponentWorms;
-        } else {
-            attacker = currentWorm; // Nunggu currentEnemyWorm
-            recievers = allMyWorms;
-        }
-        for(int i=0;i<recievers.length;i++) {
-            if(maxDamage < getDamageIfEnemyShootable(recievers[i])) {
-                maxDamage = 8;
+        Worm[] recievers = allOpponentWorms;
+        if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0) {
+            if(maxDamage < getMaxBananaBombDamageByPlayer()) {
+                maxDamage = getMaxBananaBombDamageByPlayer();
             }
-            // Nunggu Damage Bananabomb sama Snowball
+        } else if(currentWorm.id == 3 && currentWorm.snowballs.count > 0) {
+            if(maxDamage < getMaxSnowballImpactByPlayer()) {
+                maxDamage = getMaxSnowballImpactByPlayer();
+            }
+        } else {
+            for (int i = 0; i < recievers.length; i++) {
+                if (maxDamage < getDamageIfEnemyShootable(recievers[i])) {
+                    maxDamage = 8;
+                    break;
+                }
+
+            }
         }
         return maxDamage;
     }
