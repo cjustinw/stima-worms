@@ -25,8 +25,9 @@ public class Bot {
     // akan menyimpan posisi terbaik untuk
     private List<Position> candidateBananaBombPositionByPlayer;
     private List<Position> candidateBananaBombPositionByEnemy;
-    private List<Position> candidateSnowballPosition;
-    private int[] impactOfBeingFreezed;
+    private List<Position> candidateSnowballPositionByPlayer;
+    private List<Position> candidateSnowballPositionByEnemy;
+    private int[] impactOfBeingFrozen;
 
 
     public Bot(Random random, GameState gameState) {
@@ -1077,7 +1078,7 @@ public class Bot {
                     Position PEval = createPosition(i, j);
                     int opponentAlliesInflictedDamage = 0;
                     for (int k = 0; k < 3; k++) {
-                        opponentAlliesInflictedDamage += getCellDamageFromBananaBomb(PEval, myWormsPosition[k]);
+                        opponentAlliesInflictedDamage += getCellDamageFromBananaBomb(PEval, enemyPosition[k]);
                     }
                     damageMap[i][j] -= opponentAlliesInflictedDamage;
 
@@ -1099,16 +1100,61 @@ public class Bot {
         return maxDamageInflicted;
     }
 
-    public int[] calculateImpactOfBeingFreezed () {
+    public void calculateImpactOfBeingFrozen () {
+        // Meng-update nilai impactOfBeingFrozen
+        // menghitung Impact yang diterima oleh setiap worm jika ter-freeze pada round tertentu
+        // nilai impact dilihat dari damage yang dapat diberikan worm lawan yang berada di radius 6
 
+        //distanceOneOneOne[i][j] adalah jarak worm Player i ke worm opponent j
+        int[][] distanceOneOnOne = new int[3][3];
+        int[] impactOnWorm = new int[6];
+
+        // Posisi setiap worm
+        Position[] allyPosition = getMyWormsPosition();
+        Position[] enemyPosition = getEnemyPosition();
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 6; j++) {
+                distanceOneOnOne[i][j] = getEuclideanDistance(allyPosition[i], enemyPosition[j]);
+            }
+        }
+
+        // besar konstanta impact yang dapat diberikan sebuah worm
+        int impactConstant = 6;
+
+        for (int k = 0; k < 6; k++) {
+            impactOnWorm[k] = 0;
+            if (k < 3) {
+                // evaluasi impact terhadap worm Player
+                for (int t = 0; t < 3; t++) {
+                    // jumlah impact oleh ketiga musuh
+                    if (distanceOneOnOne[k][t] <= 6) {
+                        impactOnWorm[k] += impactConstant;
+                    }
+                }
+            }
+            else {
+                // evaluasi impact terhadap worm musuh
+                for (int t = 0; t < 3; t++) {
+                    if (distanceOneOnOne[t][k%3] <= 6) {
+                        impactOnWorm[k] += impactConstant;
+                    }
+                }
+            }
+        }
+
+        impactOfBeingFrozen = impactOnWorm;
     }
 
-    public int getMaxSnowballImpactByPlayer () {
+    public int[] getSnowballImpact () {
         // Mengembalikan "impact" terbesar yang dapat di-inflict kepada musuh dengan pelemparan Snowball
         // dengan asumsi worms musuh tidak bergerak
         // "Impact" dihitung dengan mengevaluasi gambaran kasar kemungkinan serangan dalam 5 round ke depan
         // Prekondisi:
         // Technologist dapat menerima command dan masih ada Snowball
+
+        // Preparation
+        calculateImpactOfBeingFrozen();
 
         // mendapatkan posisi Agent dan worms
         Position PTechnologist = gameState.myPlayer.worms[2].position;
@@ -1165,11 +1211,63 @@ public class Bot {
             }
         }
 
-        // menghitung Impact yang diterima setiap worm jika terkena ter-freeze
-        for (int k = 0; k < 6; k++) {
-            // cek 
+        List<Position> snowballCandidatePosition = new ArrayList<>();
+        List<Position> snowballCandidatePositionEnemy = new ArrayList<>();
+        int maxImpactInflicted = 0; // semakin besar semakin baik untuk Player
+        int minImpactInflicted = 0; // semakin kecil semakin baik untuk Enemy
+        int[] impactPerWorm = impactOfBeingFrozen;
+        int[][] impactMap = new int[33][33];
+
+        for (int i = 0; i < 33; i++){
+            for (int j = 0; j < 33; j++) {
+                impactMap[i][j] = 0;
+                // evaluasi Impact yang disebabkan pelemparan snowball pada setiap Cell
+                for (int k = 0; k < 6; k++) {
+                    if (snowballableMap[i][j][k]) {
+                        if (k < 3) {
+                            // impact terhadap worm sendiri (bad)
+                            impactMap[i][j] -= impactPerWorm[k];
+                        }
+                        else {
+                            // impact terhadap worm opponen (good)
+                            impactMap[i][j] += impactPerWorm[k];
+                        }
+                    }
+                }
+                if (impactMap[i][j] > 0) {
+                    // Cell ini considerable untuk dilakukan pelemparan snowball
+                    if (impactMap[i][j] > maxImpactInflicted) {
+                        // mencatat Cell terbaik yang baru
+                        maxImpactInflicted = impactMap[i][j];
+                        snowballCandidatePosition.clear();
+                        snowballCandidatePosition.add(createPosition(i,j));
+                    }
+                    else if (impactMap[i][j] == maxImpactInflicted) {
+                        // menambahkan Cell yang sama baiknya ke ArrayList
+                        snowballCandidatePosition.add(createPosition(i,j));
+                    }
+                }
+                else if (impactMap[i][j] < 0) {
+                    // Cell ini considerable untuk dilakukan pelemparan snowball
+                    if (impactMap[i][j] < minImpactInflicted) {
+                        // mencatat Cell terbaik yang baru
+                        minImpactInflicted = impactMap[i][j];
+                        snowballCandidatePositionEnemy.clear();
+                        snowballCandidatePositionEnemy.add(createPosition(i,j));
+                    }
+                    else if (impactMap[i][j] == minImpactInflicted) {
+                        // menambahkan Cell yang sama baiknya ke ArrayList
+                        snowballCandidatePositionEnemy.add(createPosition(i,j));
+                    }
+                }
+            }
         }
-        return 0;
+
+        candidateSnowballPositionByPlayer = snowballCandidatePosition;
+        candidateSnowballPositionByEnemy = snowballCandidatePositionEnemy;
+
+        int[] maxMinImpact = {maxImpactInflicted, -1*minImpactInflicted};
+        return maxMinImpact;
     }
 
     public Position getClosestPowerup() {
@@ -1255,8 +1353,8 @@ public class Bot {
                 maxDamage = getMaxBananaBombDamageByPlayer();
             }
         } else if(currentWorm.id == 3 && currentWorm.snowballs.count > 0) {
-            if(maxDamage < getMaxSnowballImpactByPlayer()) {
-                maxDamage = getMaxSnowballImpactByPlayer();
+            if(maxDamage < getSnowballImpact()[0]) {
+                maxDamage = getSnowballImpact()[0];
             }
         } else {
             for (int i = 0; i < recievers.length; i++) {
@@ -1264,7 +1362,6 @@ public class Bot {
                     maxDamage = 8;
                     break;
                 }
-
             }
         }
         return maxDamage;
