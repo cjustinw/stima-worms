@@ -43,7 +43,10 @@ public class Bot {
 
         for(int i = 0; i < 3; i++){
             if(isEnemyShootable(allOpponentWorms[i])){
-                if(currentWorm.id == 3){
+                if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
+                    return new BananaBombCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
+                }
+                if(currentWorm.id == 3 && currentWorm.snowballs.count > 0){
                     return new SnowballCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
                 }
                 Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
