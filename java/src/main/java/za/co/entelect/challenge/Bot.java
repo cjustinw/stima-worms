@@ -43,6 +43,9 @@ public class Bot {
 
         for(int i = 0; i < 3; i++){
             if(isEnemyShootable(allOpponentWorms[i])){
+                if(currentWorm.id == 3){
+                    return new SnowballCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
+                }
                 Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
                 return new ShootCommand(direction);
             }
@@ -1149,6 +1152,7 @@ public class Bot {
         for (int k = 0; k < 6; k++) {
 
         }
+        return 0;
     }
 
     public Position getClosestPowerup() {
