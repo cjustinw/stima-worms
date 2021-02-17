@@ -26,6 +26,7 @@ public class Bot {
     private List<Position> candidateBananaBombPositionByPlayer;
     private List<Position> candidateBananaBombPositionByEnemy;
     private List<Position> candidateSnowballPosition;
+    private int[] impactOfBeingFreezed;
 
 
     public Bot(Random random, GameState gameState) {
@@ -1083,6 +1084,10 @@ public class Bot {
         return maxDamageInflicted;
     }
 
+    public int[] calculateImpactOfBeingFreezed () {
+
+    }
+
     public int getMaxSnowballImpactByPlayer () {
         // Mengembalikan "impact" terbesar yang dapat di-inflict kepada musuh dengan pelemparan Snowball
         // dengan asumsi worms musuh tidak bergerak
@@ -1147,8 +1152,9 @@ public class Bot {
 
         // menghitung Impact yang diterima setiap worm jika terkena ter-freeze
         for (int k = 0; k < 6; k++) {
-
+            // cek 
         }
+        return 0;
     }
 
     public Position getClosestPowerup() {
