@@ -40,13 +40,16 @@ public class Bot {
 
     public Command run(){
         Position P = getClosestPowerup();
-
         for(int i = 0; i < 3; i++){
+            if(allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0){
+                Direction direction = resolveDirection(allMyWorms[2].position, allOpponentWorms[i].position);
+                return new SelectCommand(3,"shoot",direction);
+            }
             if(isEnemyShootable(allOpponentWorms[i])){
                 if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
                     return new BananaBombCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
                 }
-                if(currentWorm.id == 3 && currentWorm.snowballs.count > 0){
+                else if(currentWorm.id == 3 && currentWorm.snowballs.count > 0 && allOpponentWorms[i].roundsUntilUnfrozen == 0){
                     return new SnowballCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
                 }
                 Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
