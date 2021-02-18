@@ -43,10 +43,12 @@ public class Bot {
         this.random = random;
         this.gameState = gameState;
         this.opponent = gameState.opponents[0];
-        this.currentWorm = getCurrentWorm(gameState);
+        this.currentWorm = getCurrentWorm();
         this.allMyWorms = gameState.myPlayer.worms;
         this.allOpponentWorms = gameState.opponents[0].worms;
         this.presummedPowerupCells = getAllCellsWithPowerup();
+        initializeFirstWeights();
+        initializeFirstBias();
     }
 
     public Command run(){
@@ -103,7 +105,7 @@ public class Bot {
         }
     }
 
-    private MyWorm getCurrentWorm(GameState gameState) {
+    private MyWorm getCurrentWorm() {
         return Arrays.stream(gameState.myPlayer.worms)
                 .filter(myWorm -> myWorm.id == gameState.currentWormId)
                 .findFirst()
@@ -273,6 +275,13 @@ public class Bot {
             }
         }
         return false;
+    }
+
+    private boolean isBananaBombAvailable() {
+        return gameState.myPlayer.worms[1].bananaBombs.count > 0;
+    }
+    private boolean isSnowballAvailable() {
+        return gameState.myPlayer.worms[2].snowballs.count > 0;
     }
 
     public class weaponChoiceAndPosition{
@@ -453,7 +462,6 @@ public class Bot {
     private boolean isTechnologistAlive () {
         return (gameState.myPlayer.worms[2].health > 0);
     }
-
 
     private List<Cell> getVertexForDijkstra(Position Psrc, Position Pdest){
         List<Cell> L = new ArrayList<Cell>();
@@ -795,6 +803,42 @@ public class Bot {
             }
         }
         return P3;
+    }
+
+    public int getClosestEnemy (Worm W, boolean isAlly) {
+        // W adalah worm yang hidup
+        // Mencari worm lawan dari W (bisa milik musuh atau Player) yang terdekat dan masih hidup
+        // isAlly == TRUE jika W adalah worm Player
+        // mengembalikan id worm yang terdekat tersebut
+
+        if (isAlly) {
+            int minDistance = 999;
+            int idShortest = 0;
+            for (int k = 0; k < 3; k++) {
+                if (allOpponentWorms[k].health > 0) {
+                    int currentDistance = getEuclideanDistance(W.position, allOpponentWorms[k].position);
+                    if (currentDistance < minDistance) {
+                        idShortest = k + 1;
+                        minDistance = currentDistance;
+                    }
+                }
+            }
+            return idShortest;
+        }
+        else {
+            int minDistance = 999;
+            int idShortest = 0;
+            for (int k = 0; k < 3; k++) {
+                if (allMyWorms[k].health > 0) {
+                    int currentDistance = getEuclideanDistance(W.position, allMyWorms[k].position);
+                    if (currentDistance < minDistance) {
+                        idShortest = k + 1;
+                        minDistance = currentDistance;
+                    }
+                }
+            }
+            return idShortest;
+        }
     }
 
 //    private List<Cell> getAllCellsWithPowerup(){
@@ -1272,7 +1316,7 @@ public class Bot {
         int maxDamage = 0;
         Worm[] recievers = allOpponentWorms;
         if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0) {
-            int maxDamageByBananaBomb = getMaxBananaBombDamageByEnemy();
+            int maxDamageByBananaBomb = getMaxBananaBombDamageByPlayer();
             if(maxDamage < maxDamageByBananaBomb) {
                 maxDamage = maxDamageByBananaBomb;
             }
@@ -1538,12 +1582,14 @@ public class Bot {
         double maxVal = -999;
         int choice = -1;
         for (int i = 0; i < secondParameters.length; i++) {
-            if (secondParameters[i] > maxVal) {
-                maxVal = secondParameters[i];
-                choice = i;
+            if (i != 3 && i != 4 && i != 5) {
+                if (secondParameters[i] > maxVal) {
+                    maxVal = secondParameters[i];
+                    choice = i;
+                }
             }
         }
-        return choice;
+        return choice + 1;
     }
 
     private double[] kaliMatriks(double[][] matriksWeight, double[] matriksParameter) {
