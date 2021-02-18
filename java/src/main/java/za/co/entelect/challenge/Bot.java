@@ -40,6 +40,15 @@ public class Bot {
 
     public Command run(){
         Position P = getClosestEnemy();
+        if(allOpponentWorms[2].health > 0 && (currentWorm.id == 1 || currentWorm.id == 2)){
+            P = allOpponentWorms[2].position;
+        }
+        else if(allOpponentWorms[2].health > 0 && currentWorm.id == 3){
+            P =getClosestPowerup();
+        }
+//        else if(allOpponentWorms[1].health > 0 && currentWorm.id == 3){
+//            P = allOpponentWorms[1].position;
+//        }
         for(int i = 0; i < 3; i++) {
             if (allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0) {
                 for (int j = 0; j < 3; j++) {
@@ -50,7 +59,7 @@ public class Bot {
                 }
             }
         }
-        if(allMyWorms[2].snowballs.count == 0 && gameState.myPlayer.remainingWormSelections > 0) {
+        if(allMyWorms[2].snowballs.count == 0 && allMyWorms[2].health <= 0&& gameState.myPlayer.remainingWormSelections > 0) {
             for(int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
@@ -294,19 +303,13 @@ public class Bot {
                 W.weapon = 1;
                 break;
             }
-            else if(isEnemyBananaBombable(enemyWorm.get(i)) && !isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0 && currentWorm.health < enemyWorm.get(i).health){
+            else if(isEnemyBananaBombable(enemyWorm.get(i)) && !isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
                 W.weapon = 2;
                 break;
             }
-            else if(isEnemySnowballable(enemyWorm.get(i)) && !isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0 && currentWorm.health < enemyWorm.get(i).health){
+            else if(isEnemySnowballable(enemyWorm.get(i)) && !isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0){
                 W.weapon = 3;
                 break;
-//                for(int j = 0; j < 3; j++){
-//                    if(isEnemyShootable(allMyWorms[j],enemyWorm.get(i))){
-//                        W.weapon = 3;
-//                        break;
-//                    }
-//                }
             }
         }
         return W;
