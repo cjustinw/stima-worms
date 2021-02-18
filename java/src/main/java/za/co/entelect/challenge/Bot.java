@@ -45,7 +45,7 @@ public class Bot {
                 for (int j = 0; j < 3; j++) {
                     Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
                     if (isEnemyShootable(allMyWorms[j], allOpponentWorms[i])) {
-                        return new SelectCommand(3, "shoot", direction);
+                        return new SelectCommand(allMyWorms[j].id, "shoot", direction);
                     }
                 }
             }
@@ -294,11 +294,11 @@ public class Bot {
                 W.weapon = 1;
                 break;
             }
-            else if(isEnemyBananaBombable(enemyWorm.get(i)) && !isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
+            else if(isEnemyBananaBombable(enemyWorm.get(i)) && !isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0 && currentWorm.health < enemyWorm.get(i).health){
                 W.weapon = 2;
                 break;
             }
-            else if(isEnemySnowballable(enemyWorm.get(i)) && !isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0){
+            else if(isEnemySnowballable(enemyWorm.get(i)) && !isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0 && currentWorm.health < enemyWorm.get(i).health){
                 W.weapon = 3;
                 break;
 //                for(int j = 0; j < 3; j++){
