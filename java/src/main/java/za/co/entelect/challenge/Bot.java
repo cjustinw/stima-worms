@@ -50,24 +50,48 @@ public class Bot {
     }
 
     public Command run(){
-        Position P = getClosestPowerup();
-        getSnowballImpact();
-        for(int i = 0; i < 3; i++){
-            if(allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0){
-                Direction direction = resolveDirection(allMyWorms[2].position, allOpponentWorms[i].position);
-                return new SelectCommand(3,"shoot",direction);
-            }
-            if(isEnemyShootable(allOpponentWorms[i])){
-                if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
-                    return new BananaBombCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
+        Position P = getClosestEnemy();
+        if(allOpponentWorms[2].health > 0 && (currentWorm.id == 1 || currentWorm.id == 2)){
+            P = allOpponentWorms[2].position;
+        }
+        else if(allOpponentWorms[2].health > 0 && currentWorm.id == 3){
+            P =getClosestPowerup();
+        }
+//        else if(allOpponentWorms[1].health > 0 && currentWorm.id == 3){
+//            P = allOpponentWorms[1].position;
+//        }
+        for(int i = 0; i < 3; i++) {
+            if (allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0) {
+                for (int j = 0; j < 3; j++) {
+                    Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
+                    if (isEnemyShootable(allMyWorms[j], allOpponentWorms[i])) {
+                        return new SelectCommand(allMyWorms[j].id, "shoot", direction);
+                    }
                 }
-                else if(currentWorm.id == 3 && currentWorm.snowballs.count > 0 && allOpponentWorms[i].roundsUntilUnfrozen == 0){
-                    return new SnowballCommand(allOpponentWorms[i].position.x,allOpponentWorms[i].position.y);
-                }
-                Direction direction = resolveDirection(currentWorm.position, allOpponentWorms[i].position);
-                return new ShootCommand(direction);
             }
         }
+        if(allMyWorms[2].snowballs.count == 0 && allMyWorms[2].health <= 0&& gameState.myPlayer.remainingWormSelections > 0) {
+            for(int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
+                    if (isEnemyShootable(allMyWorms[j], allOpponentWorms[i])) {
+                        return new SelectCommand(allMyWorms[j].id, "shoot", direction);
+                    }
+                }
+            }
+        }
+        weaponChoiceAndPosition W = greedyByWeaponChoice();
+        if(W.weapon == 1){
+            Direction direction = resolveDirection(currentWorm.position, W.position);
+            return new ShootCommand(direction);
+        }
+        else if(W.weapon == 2){
+            return new BananaBombCommand(W.position.x,W.position.y);
+        }
+        else if(W.weapon == 3){
+            return new SnowballCommand(W.position.x,W.position.y);
+        }
+
 
         Position P1;
         P1 = getNextCellShortestPath(P);
@@ -199,7 +223,7 @@ public class Bot {
                 Position P1 = new Position();
                 P1.x = i;
                 P1.y = j;
-                if(!(P1.x == currentWorm.position.x && P1.y == currentWorm.position.y) && isCoordinateValid(P1)){
+                if(!(P1.x == currentWorm.position.x && P1.y == currentWorm.position.y) && isCoordinateValid(P1) && !isAnyMyWormInPosition(P1.x,P1.y)){
                     int count = 0;
                     if(gameState.map[P1.y][P1.x].type == CellType.DIRT){
                         count += 2;
@@ -208,7 +232,6 @@ public class Bot {
                         count += 1;
                     }
                     map.put(P1, getShortestDistance(getVertexForDijkstra(P1,P)) + count);
-//                    System.out.println(getShortestDistance(getVertexForDijkstra(P1,P)) + count);
                 }
             }
         }
@@ -224,6 +247,84 @@ public class Bot {
         return Ps;
     }
 
+    private boolean isEnemyBananaBombable(Worm targetWorm){
+        int distance = getEuclideanDistance(currentWorm.position, targetWorm.position);
+        return distance == 5;
+    }
+
+    private boolean isMyWormBananaBombable(Position banana){
+        for(int i = 0; i < 3; i++){
+            if(getEuclideanDistance(allMyWorms[i].position,banana) <= 2){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isEnemySnowballable(Worm targetWorm){
+        int distance = getEuclideanDistance(currentWorm.position, targetWorm.position);
+        return distance == 5;
+    }
+
+    private boolean isMyWormSnowballable(Position snow){
+        for(int i = 0; i < 3; i++){
+            if(getEuclideanDistance(allMyWorms[i].position,snow) <= 1){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public class weaponChoiceAndPosition{
+        public int weapon;
+        public Position position;
+        public weaponChoiceAndPosition(int weapon, Position position){
+            this.weapon = weapon;
+            this.position = position;
+        }
+        public weaponChoiceAndPosition() {
+
+        }
+    }
+
+    private weaponChoiceAndPosition greedyByWeaponChoice(){
+        ArrayList<Worm> enemyWorm = new ArrayList<Worm>();
+        for(int i = 0; i < 3; i++){
+            enemyWorm.add(allOpponentWorms[i]);
+        }
+        Collections.sort(enemyWorm, new Comparator<Worm>() {
+            @Override
+            public int compare(Worm a, Worm b) {
+                return a.health - b.health;
+            }
+        });
+        weaponChoiceAndPosition W = new weaponChoiceAndPosition();
+        for(int i = 0; i < 3; i++){
+            W.weapon = 0;
+            W.position = enemyWorm.get(i).position;
+            if(isEnemyShootable(enemyWorm.get(i))) {
+                if (!isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.health < enemyWorm.get(i).health && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0) {
+                    W.weapon = 2;
+                    break;
+                }
+                else if (!isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.health < enemyWorm.get(i).health && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0) {
+                    W.weapon = 3;
+                    break;
+                }
+                W.weapon = 1;
+                break;
+            }
+            else if(isEnemyBananaBombable(enemyWorm.get(i)) && !isMyWormBananaBombable(enemyWorm.get(i).position) && currentWorm.id == 2 && currentWorm.bananaBombs.count > 0){
+                W.weapon = 2;
+                break;
+            }
+            else if(isEnemySnowballable(enemyWorm.get(i)) && !isMyWormSnowballable(enemyWorm.get(i).position) && currentWorm.id == 3 && currentWorm.snowballs.count > 0 && enemyWorm.get(i).roundsUntilUnfrozen == 0){
+                W.weapon = 3;
+                break;
+            }
+        }
+        return W;
+    }
 
     /* Predikat Methods */
     private boolean isWormAlive (int playerId, int wormId) {
@@ -251,10 +352,6 @@ public class Bot {
 
     private boolean isCoordinateValid(Position P){
         return ((P.x >= 0 && P.x <= 32)&&(P.y >= 0 && P.y <= 32)&&(gameState.map[P.y][P.x].type != CellType.DEEP_SPACE));
-    }
-
-    private boolean isCoordinateXYValid(int x, int y) {
-        return (x >= 0 && x <= 32)&&(y >= 0 && y <= 32)&&(gameState.map[y][x].type != CellType.DEEP_SPACE);
     }
 
     private boolean[] isEnemyInRangeBananaBomb (Position PAgent) {
@@ -298,7 +395,6 @@ public class Bot {
                 }
             }
         }
-
         return isBombable;
     }
 
@@ -591,28 +687,24 @@ public class Bot {
         int maxRange = 4;
         Position P1 = currentWorm.position;
         Position P2 = targetWorm.position;
-        if(getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(P1,P2)) {
+        if(getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(P1,P2) && (P1.x == P2.x || P1.y == P2.y)) {
             isShootable = true;
         }
-//        if(P2.y == P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-//            if(isAnyObstacleInRange(P1,P2,0) || isAnyWormInRange(P1,P2,0)){
-//                isShootable = false;
-//            }
-//        } else if (P2.x == P1.x && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-//            if(isAnyObstacleInRange(P1,P2,1) || isAnyWormInRange(P1,P2,1)){
-//                isShootable = false;
-//            }
-//        } else if (P2.x + P2.y == P1.x + P1.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-//            if(isAnyObstacleInRange(P1,P2,2) || isAnyWormInRange(P1,P2,2)){
-//                isShootable = false;
-//            }
-//        } else if (P1.x - P2.x == P1.y - P2.y && getLinearDistance(P1,P2) <= maxRange && targetWorm.health > 0) {
-//            if(isAnyObstacleInRange(P1,P2,3) || isAnyWormInRange(P1,P2,3)){
-//                isShootable = false;
-//            }
-//        } else {
-//            isShootable = false;
-//        }
+        else if(getLinearDistance(P1,P2) < maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(P1,P2) ){
+            isShootable = true;
+        }
+        return isShootable;
+    }
+
+    public boolean isEnemyShootable(Worm myWorm, Worm targetWorm) {
+        boolean isShootable = false;
+        int maxRange = 4;
+        if(getLinearDistance(myWorm.position,targetWorm.position) <= maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(myWorm.position,targetWorm.position) && (myWorm.position.x == targetWorm.position.x || myWorm.position.y == targetWorm.position.y)) {
+            isShootable = true;
+        }
+        else if(getLinearDistance(myWorm.position,targetWorm.position) < maxRange && targetWorm.health > 0 && !isAnyObstacleBetween(myWorm.position,targetWorm.position)){
+            isShootable = true;
+        }
         return isShootable;
     }
 
@@ -661,7 +753,7 @@ public class Bot {
         }
         else if(Math.abs(P1.x - P2.x) == Math.abs(P1.y - P2.y)){
             int val = Math.abs(P1.y - P2.y);
-            for(int i = 1; i <= val; i++){
+            for(int i = 1; i < val; i++){
                 int a,b;
                 if(P1.x > P2.x){
                     a = -1*i;
@@ -690,232 +782,12 @@ public class Bot {
         } else return 0;
     }
 
-    public boolean isAnyObstacleInRange(Position P1, Position P2, int directionSearch) {
-        // Asumsi input valid
-        // Untuk search horizontal (P1.y == P2.y), directionSearch = 0
-        // Untuk search vertikal (P1.x == P2.x), directionSearch = 1
-        // Untuk search diagonal dari kiri atas ke kanan bawah atau sebaliknya, directionSearch = 2
-        // Untuk search diagonal dari kiri bawah ke kanan atas atau sebaliknya, directionSearch = 3
-        boolean obstacleInRange = false;
-        if(directionSearch == 0) {
-            if(P1.x < P2.x) {
-                int i = P1.x + 1;
-                while(i < P2.x && !obstacleInRange){
-                    if(gameState.map[i][P1.y].type == CellType.DEEP_SPACE || gameState.map[i][P1.y].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    i = i + 1;
-                }
-            } else {
-                int i = P2.x + 1;
-                while(i < P1.x && !obstacleInRange){
-                    if(gameState.map[i][P1.y].type == CellType.DEEP_SPACE || gameState.map[i][P1.y].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    i = i + 1;
-                }
-            }
-        } else if (directionSearch == 1) {
-            if(P1.y < P2.y) {
-                int i = P1.y + 1;
-                while(i < P2.y && !obstacleInRange){
-                    if(gameState.map[P1.x][i].type == CellType.DEEP_SPACE || gameState.map[P1.x][i].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    i = i + 1;
-                }
-            } else {
-                int i = P2.y + 1;
-                while(i < P1.y && !obstacleInRange){
-                    if(gameState.map[P1.x][i].type == CellType.DEEP_SPACE || gameState.map[P1.x][i].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    i = i + 1;
-                }
-            }
-        } else if (directionSearch == 2) {
-            Position P3 = new Position();
-            if(P1.x < P2.x) {
-                P3.x = P1.x + 1;
-                P3.y = P1.y - 1;
-                while(!obstacleInRange && P3.x != P2.x && P3.y != P2.y) {
-                    if(gameState.map[P3.x][P3.y].type == CellType.DEEP_SPACE || gameState.map[P3.x][P3.y].type == (CellType.DIRT)) {
-                        obstacleInRange = true;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y - 1;
-                }
-            } else {
-                P3.x = P2.x + 1;
-                P3.y = P2.y - 1;
-                while(!obstacleInRange && P3.x != P1.x && P3.y != P1.y) {
-                    if(gameState.map[P3.x][P3.y].type == CellType.DEEP_SPACE || gameState.map[P3.x][P3.y].type == (CellType.DIRT)) {
-                        obstacleInRange = true;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y - 1;
-                }
-            }
-        } else {
-            Position P3 = new Position();
-            if(P1.x < P2.x) {
-                P3.x = P1.x + 1;
-                P3.y = P1.y + 1;
-                while(!obstacleInRange && P3.x != P2.x && P3.y != P2.y) {
-                    if(gameState.map[P3.x][P3.y].type == CellType.DEEP_SPACE || gameState.map[P3.x][P3.y].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y + 1;
-                }
-            } else {
-                P3.x = P2.x + 1;
-                P3.y = P2.y + 1;
-                while(!obstacleInRange && P3.x != P1.x && P3.y != P1.y) {
-                    if(gameState.map[P3.x][P3.y].type == CellType.DEEP_SPACE || gameState.map[P3.x][P3.y].type == CellType.DIRT) {
-                        obstacleInRange = true;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y + 1;
-                }
-            }
-        }
-        return obstacleInRange;
-    }
-
-    public boolean isAnyWormInRange(Position P1, Position P2, int directionSearch) {
-        // Asumsi input valid
-        // Untuk search horizontal (P1.y == P2.y), directionSearch = 0
-        // Untuk search vertikal (P1.x == P2.x), directionSearch = 1
-        // Untuk search diagonal dari kiri atas ke kanan bawah atau sebaliknya, directionSearch = 2
-        // Untuk search diagonal dari kiri bawah ke kanan atas atau sebaliknya, directionSearch = 3
-        boolean wormInRange = false;
-        if(directionSearch == 0) {
-            if(P1.x < P2.x) {
-                int i = P1.x + 1;
-                while(i < P2.x && !wormInRange){
-                    int j = 0;
-                    while(!wormInRange && j < 3){
-                        if(allMyWorms[j].position.x == i && allMyWorms[j].position.y == P1.y || allOpponentWorms[j].position.x == i && allMyWorms[j].position.y == P1.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    i = i + 1;
-                }
-            } else {
-                int i = P2.x + 1;
-                while(i < P1.x && !wormInRange){
-                    int j = 0;
-                    while(!wormInRange && j < 3){
-                        if(allMyWorms[j].position.x == i && allMyWorms[j].position.y == P1.y || allOpponentWorms[j].position.x == i && allMyWorms[j].position.y == P1.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    i = i + 1;
-                }
-            }
-        } else if (directionSearch == 1) {
-            if(P1.y < P2.y) {
-                int i = P1.y + 1;
-                while(i < P2.y && !wormInRange){
-                    int j = 0;
-                    while(!wormInRange && j < 3){
-                        if(allMyWorms[j].position.y == i && allMyWorms[j].position.x == P1.x || allOpponentWorms[j].position.y == i && allMyWorms[j].position.x == P1.x) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    i = i + 1;
-                }
-            } else {
-                int i = P2.y + 1;
-                while(i < P1.y && !wormInRange){
-                    int j = 0;
-                    while(!wormInRange && j < 3){
-                        if(allMyWorms[j].position.y == i && allMyWorms[j].position.x == P1.x || allOpponentWorms[j].position.y == i && allMyWorms[j].position.x == P1.x) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    i = i + 1;
-                }
-            }
-        } else if (directionSearch == 2) {
-            Position P3 = new Position();
-            if(P1.x < P2.x) {
-                P3.x = P1.x + 1;
-                P3.y = P1.y - 1;
-                while(!wormInRange && P3.x != P2.x && P3.y != P2.y) {
-                    int j = 0;
-                    while(!wormInRange && j < 3) {
-                        if(allMyWorms[j].position.x == P3.x && allMyWorms[j].position.y == P3.y || allOpponentWorms[j].position.x == P3.x && allOpponentWorms[j].position.y == P3.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y - 1;
-                }
-            } else {
-                P3.x = P2.x + 1;
-                P3.y = P2.y - 1;
-                while(!wormInRange && P3.x != P1.x && P3.y != P1.y) {
-                    int j = 0;
-                    while(!wormInRange && j < 3) {
-                        if(allMyWorms[j].position.x == P3.x && allMyWorms[j].position.y == P3.y || allOpponentWorms[j].position.x == P3.x && allOpponentWorms[j].position.y == P3.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y - 1;
-                }
-            }
-        } else {
-            Position P3 = new Position();
-            if(P1.x < P2.x) {
-                P3.x = P1.x + 1;
-                P3.y = P1.y + 1;
-                while(!wormInRange && P3.x != P2.x && P3.y != P2.y) {
-                    int j = 0;
-                    while(!wormInRange && j < 3) {
-                        if(allMyWorms[j].position.x == P3.x && allMyWorms[j].position.y == P3.y || allOpponentWorms[j].position.x == P3.x && allOpponentWorms[j].position.y == P3.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y + 1;
-                }
-            } else {
-                P3.x = P2.x + 1;
-                P3.y = P2.y + 1;
-                while(!wormInRange && P3.x != P1.x && P3.y != P1.y) {
-                    int j = 0;
-                    while(!wormInRange && j < 3) {
-                        if(allMyWorms[j].position.x == P3.x && allMyWorms[j].position.y == P3.y || allOpponentWorms[j].position.x == P3.x && allOpponentWorms[j].position.y == P3.y) {
-                            wormInRange = true;
-                        }
-                        j = j + 1;
-                    }
-                    P3.x = P3.x + 1;
-                    P3.y = P3.y - 1;
-                }
-            }
-        }
-        return wormInRange;
-    }
-
     public Position getClosestEnemy() {
         int closestDistance = 9999;
         Position P3 = new Position();
-        P3.x = -99;
-        P3.y = -99;
         for(int i=0;i<allMyWorms.length;i++) {
             for(int j=0;j<allOpponentWorms.length;j++) {
-                if(getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, allOpponentWorms[j].position)) < closestDistance) {
+                if(getShortestDistance(getVertexForDijkstra(allMyWorms[i].position, allOpponentWorms[j].position)) < closestDistance && allOpponentWorms[j].health > 0) {
                     closestDistance = getLinearDistance(allMyWorms[i].position, allOpponentWorms[j].position);
                     P3.x = allOpponentWorms[j].position.x;
                     P3.y = allOpponentWorms[j].position.y;
@@ -925,6 +797,17 @@ public class Bot {
         return P3;
     }
 
+//    private List<Cell> getAllCellsWithPowerup(){
+//        ArrayList<Cell> powerup = new ArrayList<Cell>();
+//        for(int i = 0; i < gameState.map.length; i++){
+//            for(int j = 0; j < gameState.map.length; j++){
+//                if(gameState.map[i][j].powerUp != null){
+//                    powerup.add(gameState.map[i][j]);
+//                }
+//            }
+//        }
+//        return powerup;
+//    }
     public Cell[] getAllCellsWithPowerup() {
         // Dijalankan hanya pada saat ronde paling awal
         // Asumsikan jumlah powerup <= 20
