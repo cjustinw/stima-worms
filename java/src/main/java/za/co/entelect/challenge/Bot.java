@@ -28,6 +28,15 @@ public class Bot {
     private List<Position> candidateSnowballPositionByPlayer;
     private List<Position> candidateSnowballPositionByEnemy;
     private int[] impactOfBeingFrozen;
+    private int[] maxImpactBySnowball;
+
+    // Parameterization
+    private double[] firstParameters;
+    private double[] secondParameters;
+    //private double[] thirdParameters;
+    private double[][] firstWeights;
+    private double[] firstBias;
+    //private double[][] secondWeights;
 
 
     public Bot(Random random, GameState gameState) {
@@ -42,6 +51,7 @@ public class Bot {
 
     public Command run(){
         Position P = getClosestPowerup();
+        getSnowballImpact();
         for(int i = 0; i < 3; i++){
             if(allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0){
                 Direction direction = resolveDirection(allMyWorms[2].position, allOpponentWorms[i].position);
@@ -520,6 +530,37 @@ public class Bot {
         MyWorm W2 = allMyWorms[1];
         MyWorm W3 = allMyWorms[2];
         if(W1.health > 0 && W2.health > 0 && W3.health > 0) {
+            int P12 = getLinearDistance(W1.position, W2.position);
+            int P13 = getLinearDistance(W1.position, W3.position);
+            int P23 = getLinearDistance(W2.position, W3.position);
+            if(P12 < P13 && P12 < P23){
+                result = P12;
+            } else if (P13 < P12 && P13 < P23) {
+                result = P13;
+            } else {
+                result = P23;
+            }
+        } else if (W1.health <= 0 && W2.health > 0 && W3.health > 0) {
+            result = getLinearDistance(W2.position, W3.position);
+        } else if (W1.health > 0 && W2.health <= 0 && W3.health > 0) {
+            result = getLinearDistance(W1.position, W3.position);
+        } else if (W1.health > 0 && W2.health > 0 && W3.health <= 0) {
+            result = getLinearDistance(W1.position, W2.position);
+        } else {
+            result = 0;
+        }
+        return result;
+    }
+
+    public int getClosestSumOfDistanceBetweenWormsEnemy() {
+        // Untuk Worm yang sudah mati, healthnya <= 0
+        // Jika hanya tersisa satu worm, maka return 0
+        int result = 0;
+        Worm[] enemyWorms = allOpponentWorms;
+        Worm W1 = enemyWorms[0];
+        Worm W2 = enemyWorms[1];
+        Worm W3 = enemyWorms[2];
+        if (W1.health > 0 && W2.health > 0 && W3.health > 0) {
             int P12 = getLinearDistance(W1.position, W2.position);
             int P13 = getLinearDistance(W1.position, W3.position);
             int P23 = getLinearDistance(W2.position, W3.position);
@@ -1146,7 +1187,7 @@ public class Bot {
         impactOfBeingFrozen = impactOnWorm;
     }
 
-    public int[] getSnowballImpact () {
+    public void getSnowballImpact () {
         // Mengembalikan "impact" terbesar yang dapat di-inflict kepada musuh dengan pelemparan Snowball
         // dengan asumsi worms musuh tidak bergerak
         // "Impact" dihitung dengan mengevaluasi gambaran kasar kemungkinan serangan dalam 5 round ke depan
@@ -1265,9 +1306,8 @@ public class Bot {
 
         candidateSnowballPositionByPlayer = snowballCandidatePosition;
         candidateSnowballPositionByEnemy = snowballCandidatePositionEnemy;
-
         int[] maxMinImpact = {maxImpactInflicted, -1*minImpactInflicted};
-        return maxMinImpact;
+        maxImpactBySnowball = maxMinImpact;
     }
 
     public Position getClosestPowerup() {
@@ -1349,16 +1389,44 @@ public class Bot {
         int maxDamage = 0;
         Worm[] recievers = allOpponentWorms;
         if(currentWorm.id == 2 && currentWorm.bananaBombs.count > 0) {
-            if(maxDamage < getMaxBananaBombDamageByPlayer()) {
-                maxDamage = getMaxBananaBombDamageByPlayer();
+            int maxDamageByBananaBomb = getMaxBananaBombDamageByEnemy();
+            if(maxDamage < maxDamageByBananaBomb) {
+                maxDamage = maxDamageByBananaBomb;
             }
         } else if(currentWorm.id == 3 && currentWorm.snowballs.count > 0) {
-            if(maxDamage < getSnowballImpact()[0]) {
-                maxDamage = getSnowballImpact()[0];
+            if(maxDamage < maxImpactBySnowball[0]) {
+                maxDamage = maxImpactBySnowball[0];
             }
         } else {
             for (int i = 0; i < recievers.length; i++) {
                 if (maxDamage < getDamageIfEnemyShootable(recievers[i])) {
+                    maxDamage = 8;
+                    break;
+                }
+            }
+        }
+        return maxDamage;
+    }
+
+    public int getMaxDamagePossibleTaken() {
+        int maxDamage = 0;
+        Worm[] myWorms = allMyWorms;
+        int enemyActiveWormID = gameState.opponents[0].currentWormId;
+        Worm enemyActiveWorm = gameState.opponents[0].worms[enemyActiveWormID-1];
+        if (enemyActiveWormID == 2 && enemyActiveWorm.bananaBombs.count > 0) {
+            int maxDamageByBananaBomb = getMaxBananaBombDamageByEnemy();
+            if (maxDamage < maxDamageByBananaBomb) {
+                maxDamage = maxDamageByBananaBomb;
+            }
+        }
+        else if (enemyActiveWormID == 1 && enemyActiveWorm.snowballs.count > 0) {
+            if (maxDamage < maxImpactBySnowball[1]) {
+                maxDamage = maxImpactBySnowball[1];;
+            }
+        }
+        else {
+            for (int i = 0; i < myWorms.length; i++) {
+                if (maxDamage < getDamageIfEnemyShootable(myWorms[i])) {
                     maxDamage = 8;
                     break;
                 }
@@ -1479,5 +1547,134 @@ public class Bot {
         }
 
         return Direction.valueOf(builder.toString());
+    }
+
+    /* Methods for Parameterizations */
+
+    private double normalizeWormDistance(int distance) {
+        return distance/12;
+    }
+    private double normalizeWormHP (int hp) {
+        if (hp > 30) {
+            return (hp - 30) / 90;
+        }
+        else {
+            return (hp - 30) / 30;
+        }
+    }
+    private double normalizeDamage (int damage) {
+        if (damage == 8) {
+            return 0.6; 
+        }
+        else {
+            return damage / 20; 
+        }
+    }
+    private double normalizeDistanceToPowerUp (int distance) {
+        return distance / 10;
+    }
+    private double normalizeDistanceToLava (int distance) {
+        return distance /12; 
+    }
+    private double normalizeTeamCloseness (int distance) {
+        if (distance > 8) {
+            return 1 - distance / 40;
+        }
+        else {
+            return 1 - distance / 20;
+        }
+    }
+    
+    private void initializeFirstWeights () {
+        double[][] firstW = {
+                { 0.9,  0.7, -0.4,  0.7, -0.2, -0.1,  0.6, -0.5,  0.3},
+                { 0.8,  0.8, -0.9,  0.8,  0.2, -0.1,  0.5, -0.3,  0.3},
+                { 0.3, -0.9,  0.8, -0.7,  0.8, -0.4, -0.4, -0.3,  0.7},
+                {-0.6,  0.8, -0.1,  0.6, -0.3, -0.2,  0.4, -0.2, -0.2},
+                { 0.7,  0.4,  0.5,  0.5,  0.6,  0.3,  0.2,  0.4,  0.9},
+                { 0.5,  0.3,  0.6,  0.8, -0.1, -0.2,  0.4, -0.5,  0.9},
+                { 0.1, -0.8,  0.5, -0.6,  0.8,  0.9,  0.4,  0.5,  0.1},
+                {-0.3,  0.5,  0.5, -0.7,  0.7,  0.4, -0.8,  0.8, -0.2},
+                { 0.5, -0.3,  0.4,  0.4,  0.6, -0.3,  0.4,  0.6,  0.3}
+        };
+        firstWeights = firstW;
+    }
+    private void initializeFirstBias () {
+        double[] firstB = {-1.0, -1.0, 0.0, -0.05, -2.1, -1.3, -0.9, -0.45, -1.25};
+        firstBias = firstB;
+    }
+
+    private void calculateFirstParameters() {
+        /*
+        * 1) jarak musuh terdekat
+        * 2) hpCurrentWorm
+        * 3) hpClosestEnemyWorm
+        * 4) maxDamageGiven
+        * 5) maxDamageTaken
+        * 6) distanceToPowerUp
+        * 7) distanceToLava
+        * 8) seberapaTerkumpulPlayer
+        * 9) seberapa TerkumpulMusuh
+        * */
+        double[] firstParams = new double[9];
+
+        // #1
+        Position PCurrentWorm = currentWorm.position;
+        Position PClosestEnemy = getClosestEnemy();
+        firstParams[0] = normalizeWormDistance(getEuclideanDistance(PCurrentWorm, PClosestEnemy));
+
+        // #2
+        firstParams[1] = normalizeWormHP(getCurrentWormHealth());
+        // #3
+        firstParams[2] = normalizeWormHP(getClosestEnemyCurrentHealth());
+
+        // #4
+        firstParams[3] = normalizeDamage(getMaxDamagePossibleGiven());
+        // #5
+        firstParams[4] = normalizeDamage(getMaxDamagePossibleTaken());
+
+        // #6
+        firstParams[5] = normalizeDistanceToPowerUp(getEuclideanDistance(PCurrentWorm, getClosestPowerup()));
+        // #7
+        firstParams[6] = normalizeDistanceToLava(getCurrentWormDistanceFromLava());
+
+        // #8
+        firstParams[7] = normalizeTeamCloseness(getClosestSumOfDistanceBetweenWorm());
+        // #9
+        firstParams[8] = normalizeTeamCloseness(getClosestSumOfDistanceBetweenWormsEnemy());
+
+        firstParameters = firstParams;
+    }
+
+    private void calculateSecondParameters() {
+        secondParameters = kaliMatriks(firstWeights, firstParameters);
+    }
+
+    private int getStrategy () {
+        calculateSecondParameters();
+        double maxVal = -999;
+        int choice = -1;
+        for (int i = 0; i < secondParameters.length; i++) {
+            if (secondParameters[i] > maxVal) {
+                maxVal = secondParameters[i];
+                choice = i;
+            }
+        }
+        return choice;
+    }
+
+    private double[] kaliMatriks(double[][] matriksWeight, double[] matriksParameter) {
+        // mengalikan matriks berukuran w x p dengan matriks berukuran p x 1
+        int w = matriksWeight.length;
+        int p = matriksParameter.length;
+        double[] hasil = new double[w];
+        for (int i = 0; i < w; i++) {
+            int elemen_i = 0;
+            for (int j = 0; j < p; j++) {
+                elemen_i += matriksWeight[i][j] * matriksParameter[j];
+            }
+            hasil[i] = elemen_i;
+        }
+        return hasil;
     }
 }
