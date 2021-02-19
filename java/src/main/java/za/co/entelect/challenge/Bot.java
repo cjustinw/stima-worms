@@ -491,19 +491,7 @@ public class Bot {
         List<Cell> L = new ArrayList<Cell>();
         L.add(gameState.map[Psrc.y][Psrc.x]);
         if(!isDiagonal(Psrc, Pdest)) {
-            if (isSejajarSbX(Psrc, Pdest)) {
-//                if (Math.abs(Psrc.x - Pdest.x) % 2 == 0) {
-//                    int val = (Pdest.x - Psrc.x) / 2;
-//                    L.add(gameState.map[Pdest.y + val][Pdest.x - val]);
-//                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
-//                }
-            } else if (isSejajarSbY(Psrc, Pdest)) {
-//                if (Math.abs(Psrc.y - Pdest.y) % 2 == 0) {
-//                    int val = (Pdest.y - Psrc.y) / 2;
-//                    L.add(gameState.map[Pdest.y - val][Pdest.x + val]);
-//                    L.add(gameState.map[Pdest.y - val][Pdest.x - val]);
-//                }
-            } else {
+            if(!isSejajarSbX(Psrc, Pdest) && !isSejajarSbY(Psrc, Pdest)) {
                 Position P1 = new Position();
                 Position P2 = new Position();
                 P1.x = Psrc.x;
@@ -521,11 +509,6 @@ public class Bot {
                             if (isCoordinateValid(P1)) {
                                 L.add(gameState.map[P1.y][P1.x]);
                             }
-//                        if(Math.abs(currentWorm.position.x - P1.x) % 2 == 0){
-//                            int val = (P1.x - currentWorm.position.x) / 2;
-//                            L.add(gameState.map[P1.y + val][P1.x - val]);
-//                            L.add(gameState.map[P1.y - val][P1.x - val]);
-//                        }
                             break;
                         }
                     }
@@ -539,11 +522,6 @@ public class Bot {
                             if (isCoordinateValid(P2)) {
                                 L.add(gameState.map[P2.y][P2.x]);
                             }
-//                        if(Math.abs(P.x - P2.x) % 2 == 0){
-//                            int val = (P2.x - P.x) / 2;
-//                            L.add(gameState.map[P2.y + val][P2.x - val]);
-//                            L.add(gameState.map[P2.y - val][P2.x - val]);
-//                        }
                             break;
                         }
                     }
@@ -558,11 +536,6 @@ public class Bot {
                             if (isCoordinateValid(P1)) {
                                 L.add(gameState.map[P1.y][P1.x]);
                             }
-//                        if(Math.abs(currentWorm.position.y - P1.y) % 2 == 0){
-//                            int val = (P1.y - currentWorm.position.y) / 2;
-//                            L.add(gameState.map[P1.y - val][P1.x + val]);
-//                            L.add(gameState.map[P1.y - val][P1.x - val]);
-//                        }
                             break;
                         }
                     }
@@ -576,11 +549,6 @@ public class Bot {
                             if (isCoordinateValid(P2)) {
                                 L.add(gameState.map[P2.y][P2.x]);
                             }
-//                        if(Math.abs(P.y - P2.y) % 2 == 0){
-//                            int val = (P2.y - P.y) / 2;
-//                            L.add(gameState.map[P2.y - val][P2.x + val]);
-//                            L.add(gameState.map[P2.y - val][P2.x - val]);
-//                        }
                             break;
                         }
                     }
@@ -616,18 +584,6 @@ public class Bot {
                 graph[i][j] = getLinearDistance(p1, p2);
             }
         }
-//        for(int i = 0; i < C.size(); i++){
-//            System.out.print(i + " ");
-//            for(int j = 0; j < C.size(); j++){
-//                System.out.print(graph[i][j] + " ");
-//            }
-//            System.out.println();
-//        }
-//        System.out.println();
-//        for(int i = 0; i < C.size(); i++){
-//            System.out.println(C.get(i).x + "," + C.get(i).y);
-//        }
-//        System.out.println();
 
         //Dijkstra Shortest Path
 
@@ -768,17 +724,6 @@ public class Bot {
         return P3;
     }
 
-//    private List<Cell> getAllCellsWithPowerup(){
-//        ArrayList<Cell> powerup = new ArrayList<Cell>();
-//        for(int i = 0; i < gameState.map.length; i++){
-//            for(int j = 0; j < gameState.map.length; j++){
-//                if(gameState.map[i][j].powerUp != null){
-//                    powerup.add(gameState.map[i][j]);
-//                }
-//            }
-//        }
-//        return powerup;
-//    }
     public Cell[] getAllCellsWithPowerup() {
         // Dijalankan hanya pada saat ronde paling awal
         // Asumsikan jumlah powerup <= 20
