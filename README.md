@@ -1,4 +1,4 @@
-# Tugas Besar Strategi Algoritma 1: Worms #
+# Tugas Besar 1 Strategi Algoritma: Worms #
 
 ## Penjelasan Algoritma Greedy yang Diimplementasikan ##
 
