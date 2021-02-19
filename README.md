@@ -12,3 +12,8 @@ Algoritma greedy yang dimplementasikan bertujuan untuk memenangkan permainan den
 5. Build program dan kemudian jalankan dengan mengunakan Maven 
 6. Jalankan run.bat 
 
+## Tentang Kami ##
+Kelompok 35: WORM
+1. Christopher Justine William (13519006)
+2. Rexy Gamaliel Rumahorbo (13519010)
+3. Gregorius Dimas Baskara (13519190)
