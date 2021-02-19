@@ -38,24 +38,34 @@ public class Bot {
     }
 
     public Command run(){
-        Position P = getClosestEnemy();
-        if(allOpponentWorms[2].health > 0 && (currentWorm.id == 1 || currentWorm.id == 2)){
-            P = allOpponentWorms[2].position;
+        Position P;
+        if(isPowerUpAvailable()){
+            P = getClosestPowerup();
         }
-        else if(allOpponentWorms[2].health > 0 && currentWorm.id == 3){
-            P =getClosestPowerup();
+        else{
+            P = getClosestEnemy();
         }
-        for(int i = 0; i < 3; i++) {
-            if (allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0) {
-                for (int j = 0; j < 3; j++) {
-                    Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
-                    if (isEnemyShootable(allMyWorms[j], allOpponentWorms[i])) {
-                        return new SelectCommand(allMyWorms[j].id, "shoot", direction);
+        if(allOpponentWorms[2].health > 0){
+            if(currentWorm.id == 1 || currentWorm.id == 2) {
+                P = allOpponentWorms[2].position;
+            }
+            else if(allOpponentWorms[1].health > 0){
+                P = allOpponentWorms[1].position;
+            }
+        }
+        if(allMyWorms[2].snowballs.count > 0 && gameState.myPlayer.remainingWormSelections > 0) {
+            for (int i = 0; i < 3; i++) {
+                if (allOpponentWorms[i].roundsUntilUnfrozen > 0 && gameState.myPlayer.remainingWormSelections > 0) {
+                    for (int j = 0; j < 3; j++) {
+                        Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
+                        if (isEnemyShootable(allMyWorms[j], allOpponentWorms[i])) {
+                            return new SelectCommand(allMyWorms[j].id, "shoot", direction);
+                        }
                     }
                 }
             }
         }
-        if(allMyWorms[2].snowballs.count == 0 && allMyWorms[2].health <= 0&& gameState.myPlayer.remainingWormSelections > 0) {
+        else if(allMyWorms[2].snowballs.count == 0 && gameState.myPlayer.remainingWormSelections > 0) {
             for(int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     Direction direction = resolveDirection(allMyWorms[j].position, allOpponentWorms[i].position);
@@ -93,6 +103,15 @@ public class Bot {
                 .filter(myWorm -> myWorm.id == gameState.currentWormId)
                 .findFirst()
                 .get();
+    }
+
+    private boolean isPowerUpAvailable(){
+        for(int i = 0; i < presummedPowerupCells.length; i++){
+            if(presummedPowerupCells[i] != null){
+                return true;
+            }
+        }
+        return false;
     }
 
     private Position[] getEnemyPosition () {
